@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mein Board</title>
+
+<!-- iOS: Vollbild ohne Safari-Leiste, sobald die Seite auf dem Homescreen liegt -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mein Board">
+<meta name="theme-color" content="#FDF2E3">
+<meta name="robots" content="noindex, nofollow">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+
+<style>
+  :root {
+    --cream: #FDF2E3; --ink: #253B44; --accent: #C46730;
+    --muted: #7C8A90; --line: rgba(37,59,68,.14);
+    --ok: #3C7A5A; --bad: #C0442E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --cream: #191F22; --ink: #E9E4D8; --accent: #D07A40;
+            --muted: #93A0A8; --line: rgba(255,255,255,.13);
+            --ok: #6FBF95; --bad: #E5675C; }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; background: var(--cream); color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: calc(env(safe-area-inset-top) + 28px) calc(env(safe-area-inset-right) + 20px)
+             calc(env(safe-area-inset-bottom) + 28px) calc(env(safe-area-inset-left) + 20px);
+    max-width: 560px; margin-inline: auto;
+  }
+  .logo { width: 56px; height: 56px; border-radius: 50%; border: 8px solid var(--accent); margin-bottom: 18px; }
+  h1 { font-size: 24px; letter-spacing: -.02em; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 26px; }
+  .row { display: flex; gap: 10px; align-items: baseline; padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .row .k { color: var(--muted); flex: 0 0 130px; }
+  .row .v { font-weight: 600; }
+  .v.ok { color: var(--ok); } .v.bad { color: var(--bad); }
+  button {
+    font: inherit; font-weight: 600; width: 100%; margin-top: 22px;
+    padding: 15px; border: none; border-radius: 14px;
+    background: var(--accent); color: #fff; cursor: pointer;
+  }
+  button:disabled { opacity: .55; }
+  #out { margin-top: 14px; font-size: 13px; white-space: pre-wrap; word-break: break-word; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="logo"></div>
+<h1>Mein Board</h1>
+<div class="sub">Verbindungstest — Version <b id="ver"></b></div>
+
+<div class="row"><span class="k">Anzeige</span><span class="v" id="mode">–</span></div>
+<div class="row"><span class="k">Netz</span><span class="v" id="net">–</span></div>
+<div class="row"><span class="k">Geladen um</span><span class="v" id="when">–</span></div>
+<div class="row"><span class="k">Google Sheets</span><span class="v" id="api">noch nicht geprüft</span></div>
+
+<button id="btn">Verbindung zu Google Sheets testen</button>
+<div id="out"></div>
+
+<script>
+(function(){
+  "use strict";
+  var VERSION = "v1 — Testseite";
+  var WEBAPP_URL = "https://script.google.com/macros/s/AKfycbytXkgzfQMlYOtbWLCAUds3nigkz6IehOqm_-K8bUx-_vfqHZQXX4dV6k1u17Wa7WE8Qw/exec";
+
+  var $ = function(id){ return document.getElementById(id); };
+  $("ver").textContent = VERSION;
+
+  // Läuft die Seite als Homescreen-App oder noch im Safari-Tab?
+  var standalone = window.navigator.standalone === true ||
+                   window.matchMedia("(display-mode: standalone)").matches;
+  $("mode").textContent = standalone ? "Homescreen-App ✓" : "Safari-Tab";
+  $("mode").className = "v " + (standalone ? "ok" : "");
+
+  $("net").textContent = navigator.onLine ? "online" : "offline";
+  $("when").textContent = new Date().toLocaleTimeString("de-DE");
+
+  $("btn").addEventListener("click", async function(){
+    var btn = $("btn"), api = $("api"), out = $("out");
+    btn.disabled = true; btn.textContent = "Lädt…";
+    api.textContent = "…"; api.className = "v"; out.textContent = "";
+    var t0 = Date.now();
+    try {
+      var res = await fetch(WEBAPP_URL + "?tab=Tickets", { method: "GET", redirect: "follow" });
+      var data = await res.json();
+      if (data && data.error) throw new Error(data.error);
+      var n = Array.isArray(data) ? data.length : 0;
+      api.textContent = n + " Tickets ✓";
+      api.className = "v ok";
+      out.textContent = "Antwort in " + (Date.now() - t0) + " ms.\n" +
+        (n ? "Erstes Ticket: " + (data[0].title || "(ohne Titel)") : "Tabelle ist leer.");
+    } catch (e) {
+      api.textContent = "fehlgeschlagen";
+      api.className = "v bad";
+      out.textContent = "Fehler: " + (e.message || e);
+    } finally {
+      btn.disabled = false; btn.textContent = "Nochmal testen";
+    }
+  });
+})();
+</script>
+</body>
+</html>
