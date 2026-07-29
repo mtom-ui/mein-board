@@ -25,7 +25,7 @@
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --cream:#191F22; --ink:#E9E4D8; --accent:#D07A40; --accent-dark:#B8663084;
+      --cream:#191F22; --ink:#E9E4D8; --accent:#D07A40; --accent-dark:#B86630;
       --muted:#93A0A8; --line:rgba(255,255,255,.12); --card:#222A2E;
       --chip:rgba(255,255,255,.08); --overdue:#E5675C;
       --sheet:#232B2F; --shadow:0 2px 10px rgba(0,0,0,.35);
@@ -964,11 +964,14 @@
     $("dDate").addEventListener("click", function(){
       dateSheet(draft.dueDate, function(v){ draft.dueDate = v; renderDetail(); });
     });
+    // Tags direkt am Knopf umschalten statt die Ansicht neu aufzubauen —
+    // sonst schliesst sich die Tastatur und die Scrollposition springt.
     $("dTags").querySelectorAll("[data-tag]").forEach(function(b){
       b.addEventListener("click", function(){
-        var tg = b.dataset.tag, i = draft.tags.indexOf(tg);
-        if (i >= 0) draft.tags.splice(i,1); else draft.tags.push(tg);
-        renderDetail();
+        var tg = b.dataset.tag, i = draft.tags.indexOf(tg), on = i < 0;
+        if (on) draft.tags.push(tg); else draft.tags.splice(i,1);
+        b.classList.toggle("on", on);
+        b.style.background = on ? tagColor(tg) : "";
       });
     });
 
@@ -991,23 +994,33 @@
     try {
       if (editing){
         var prev = editing.status;
-        Object.assign(editing, { title:draft.title.trim(), description:draft.description,
-                                 dueDate:draft.dueDate, status:draft.status, tags:draft.tags.slice() });
         if (draft.status === "Done"){
+          // Status bewusst NICHT setzen: completeTicket braucht den bisherigen
+          // Status fuer den Verlauf und fuer ein sauberes Rueckgaengig.
+          Object.assign(editing, { title:draft.title.trim(), description:draft.description,
+                                   dueDate:draft.dueDate, tags:draft.tags.slice() });
           var id = editing.id;
           closeDetail(); render();
           await completeTicket(id);
         } else {
-          await updateRow(TAB_TICKETS, "id", editing.id, ticketToRow(editing));
+          // Alten Stand merken, um bei einem Fehler sauber zurueckzurollen
+          var back = { title:editing.title, description:editing.description,
+                       dueDate:editing.dueDate, status:editing.status, tags:(editing.tags||[]).slice() };
+          Object.assign(editing, { title:draft.title.trim(), description:draft.description,
+                                   dueDate:draft.dueDate, status:draft.status, tags:draft.tags.slice() });
+          try { await updateRow(TAB_TICKETS, "id", editing.id, ticketToRow(editing)); }
+          catch(err){ Object.assign(editing, back); throw err; }
           if (draft.status !== prev) logActivity("status", editing, prev + " → " + draft.status);
           closeDetail(); render();
         }
       } else {
+        // Erst nach der Bestaetigung von Google lokal aufnehmen, damit bei einem
+        // Fehler kein Geisterticket in der Liste zurueckbleibt
         var t = { id:uid(), title:draft.title.trim(), description:draft.description,
                   dueDate:draft.dueDate, status:draft.status, tags:draft.tags.slice(),
                   priority:"", comments:[], series_id:"" };
-        tickets.push(t);
         await appendRow(TAB_TICKETS, ticketToRow(t));
+        tickets.push(t);
         logActivity("created", t, "");
         closeDetail(); render();
       }
