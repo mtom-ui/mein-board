@@ -2,14 +2,14 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Mein Board</title>
 
-<!-- iOS: Vollbild ohne Safari-Leiste, sobald die Seite auf dem Homescreen liegt -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Mein Board">
-<meta name="theme-color" content="#FDF2E3">
+<meta name="theme-color" content="#FDF2E3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#191F22" media="(prefers-color-scheme: dark)">
 <meta name="robots" content="noindex, nofollow">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -17,93 +17,1094 @@
 
 <style>
   :root {
-    --cream: #FDF2E3; --ink: #253B44; --accent: #C46730;
-    --muted: #7C8A90; --line: rgba(37,59,68,.14);
-    --ok: #3C7A5A; --bad: #C0442E;
+    --cream:#FDF2E3; --ink:#253B44; --accent:#C46730; --accent-dark:#A9541F;
+    --muted:#7C8A90; --line:rgba(37,59,68,.13); --card:#fff;
+    --chip:rgba(37,59,68,.07); --overdue:#C0442E; --on-accent:#fff;
+    --sheet:#fff; --shadow:0 2px 10px rgba(37,59,68,.07);
+    --top:env(safe-area-inset-top); --bot:env(safe-area-inset-bottom);
   }
   @media (prefers-color-scheme: dark) {
-    :root { --cream: #191F22; --ink: #E9E4D8; --accent: #D07A40;
-            --muted: #93A0A8; --line: rgba(255,255,255,.13);
-            --ok: #6FBF95; --bad: #E5675C; }
+    :root {
+      --cream:#191F22; --ink:#E9E4D8; --accent:#D07A40; --accent-dark:#B8663084;
+      --muted:#93A0A8; --line:rgba(255,255,255,.12); --card:#222A2E;
+      --chip:rgba(255,255,255,.08); --overdue:#E5675C;
+      --sheet:#232B2F; --shadow:0 2px 10px rgba(0,0,0,.35);
+    }
   }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { overscroll-behavior-y:none; }
   body {
-    margin: 0; background: var(--cream); color: var(--ink);
-    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    padding: calc(env(safe-area-inset-top) + 28px) calc(env(safe-area-inset-right) + 20px)
-             calc(env(safe-area-inset-bottom) + 28px) calc(env(safe-area-inset-left) + 20px);
-    max-width: 560px; margin-inline: auto;
+    margin:0; background:var(--cream); color:var(--ink);
+    font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
   }
-  .logo { width: 56px; height: 56px; border-radius: 50%; border: 8px solid var(--accent); margin-bottom: 18px; }
-  h1 { font-size: 24px; letter-spacing: -.02em; margin: 0 0 4px; }
-  .sub { color: var(--muted); font-size: 14px; margin-bottom: 26px; }
-  .row { display: flex; gap: 10px; align-items: baseline; padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; }
-  .row .k { color: var(--muted); flex: 0 0 130px; }
-  .row .v { font-weight: 600; }
-  .v.ok { color: var(--ok); } .v.bad { color: var(--bad); }
-  button {
-    font: inherit; font-weight: 600; width: 100%; margin-top: 22px;
-    padding: 15px; border: none; border-radius: 14px;
-    background: var(--accent); color: #fff; cursor: pointer;
+  button, input, textarea, select { font:inherit; color:inherit; }
+  button { background:none; border:none; padding:0; cursor:pointer; }
+  .hidden { display:none !important; }
+
+  /* ---------- Kopfzeile ---------- */
+  header {
+    position:sticky; top:0; z-index:30; background:var(--cream);
+    padding-top:var(--top); border-bottom:1px solid var(--line);
   }
-  button:disabled { opacity: .55; }
-  #out { margin-top: 14px; font-size: 13px; white-space: pre-wrap; word-break: break-word; color: var(--muted); }
+  .hdr-row { display:flex; align-items:center; gap:4px; padding:8px 14px 10px; }
+  .hdr-row h1 { font-size:26px; font-weight:800; letter-spacing:-.03em; margin:0; flex:1; }
+  .ico { width:40px; height:40px; display:flex; align-items:center; justify-content:center;
+         border-radius:11px; color:var(--muted); flex:0 0 auto; }
+  .ico:active { background:var(--chip); }
+  .ico.on { color:var(--on-accent); background:var(--accent); }
+  .ico .badge { position:absolute; margin:-16px 0 0 16px; background:var(--overdue); color:#fff;
+                font-size:10px; font-weight:800; min-width:16px; height:16px; border-radius:8px;
+                display:flex; align-items:center; justify-content:center; padding:0 4px; }
+  .searchbar { padding:0 14px 10px; }
+  .searchbar input {
+    width:100%; padding:11px 14px; border:1px solid var(--line); border-radius:12px;
+    background:var(--card); font-size:16px; -webkit-appearance:none;
+  }
+  .searchbar input:focus { outline:none; border-color:var(--accent); }
+  .statusbar { display:flex; gap:7px; overflow-x:auto; padding:0 14px 11px;
+               scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .statusbar::-webkit-scrollbar { display:none; }
+  .sbtn { flex:0 0 auto; padding:8px 14px; border-radius:11px; background:var(--chip);
+          font-size:14px; font-weight:600; color:var(--muted); white-space:nowrap; }
+  .sbtn.on { background:var(--accent); color:var(--on-accent); }
+  .sbtn i { font-style:normal; opacity:.65; margin-left:5px; }
+
+  /* ---------- Inhalt ---------- */
+  main { padding:14px 14px calc(96px + var(--bot)); min-height:60vh; }
+  .grp { margin-bottom:22px; }
+  .grp h2 { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
+            color:var(--muted); margin:0 0 9px; display:flex; align-items:center; gap:7px; }
+  .grp.over h2 { color:var(--overdue); }
+  .grp h2 b { background:var(--chip); border-radius:7px; padding:1px 7px; font-size:11px; }
+  .grp.over h2 b { background:rgba(192,68,46,.15); color:var(--overdue); }
+
+  .card { display:flex; background:var(--card); border-radius:15px; margin-bottom:9px;
+          box-shadow:var(--shadow); overflow:hidden; }
+  .card .bar { width:4px; flex:0 0 auto; }
+  .card .body { flex:1; min-width:0; padding:12px 4px 11px 12px; }
+  .card .ttl { font-size:15.5px; font-weight:600; line-height:1.3; word-break:break-word; }
+  .card .meta { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:9px; }
+  .card .done-btn { flex:0 0 auto; width:52px; display:flex; align-items:center; justify-content:center; }
+  .card .circ { width:27px; height:27px; border-radius:50%; border:2px solid var(--line); }
+  .card .done-btn:active .circ { background:var(--accent); border-color:var(--accent); }
+  .card.going { opacity:0; transform:translateX(50px); transition:opacity .2s, transform .2s; }
+
+  .pill { display:inline-flex; align-items:center; gap:4px; font-size:13px; font-weight:600;
+          border-radius:9px; padding:5px 10px; background:var(--chip); color:var(--muted); }
+  .pill.st { color:#fff; }
+  .pill.dt.over { background:rgba(192,68,46,.15); color:var(--overdue); }
+  .pill.dt.today { background:rgba(196,103,48,.17); color:var(--accent); }
+  .pill.cm { background:none; padding:5px 2px; }
+  .tag { font-size:10px; font-weight:800; padding:3px 7px; border-radius:6px; color:#fff; letter-spacing:.03em; }
+
+  .empty { text-align:center; color:var(--muted); padding:46px 20px; font-size:15px; }
+  .loading { text-align:center; color:var(--muted); padding:60px 20px; }
+  .spin { width:22px; height:22px; border:2.5px solid var(--line); border-top-color:var(--accent);
+          border-radius:50%; margin:0 auto 12px; animation:sp .7s linear infinite; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+
+  /* ---------- Navigation unten + FAB ---------- */
+  nav { position:fixed; left:0; right:0; bottom:0; z-index:30; display:flex;
+        background:var(--cream); border-top:1px solid var(--line);
+        padding-bottom:var(--bot); }
+  nav button { flex:1; padding:9px 0 8px; display:flex; flex-direction:column; align-items:center;
+               gap:3px; font-size:10.5px; font-weight:700; color:var(--muted); }
+  nav button.on { color:var(--accent); }
+  #fab { position:fixed; right:17px; bottom:calc(74px + var(--bot)); z-index:31;
+         width:56px; height:56px; border-radius:50%; background:var(--accent); color:var(--on-accent);
+         box-shadow:0 5px 18px rgba(37,59,68,.3); display:flex; align-items:center; justify-content:center; }
+  #fab:active { background:var(--accent-dark); }
+
+  /* ---------- Bottom-Sheet ---------- */
+  .scrim { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.35);
+           opacity:0; pointer-events:none; transition:opacity .22s; }
+  .scrim.on { opacity:1; pointer-events:auto; }
+  .sheet { position:fixed; left:0; right:0; bottom:0; z-index:41; background:var(--sheet);
+           border-radius:22px 22px 0 0; padding:8px 16px calc(20px + var(--bot));
+           transform:translateY(101%); transition:transform .26s cubic-bezier(.25,.8,.3,1);
+           max-height:88vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .sheet.on { transform:none; }
+  .grab { width:38px; height:4px; border-radius:2px; background:var(--line); margin:0 auto 14px; }
+  .sheet h3 { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
+              color:var(--muted); margin:0 0 11px; }
+  .opt { display:flex; align-items:center; gap:11px; width:100%; padding:14px 12px;
+         border-radius:13px; font-size:16px; font-weight:600; text-align:left; }
+  .opt:active { background:var(--chip); }
+  .opt.on { background:var(--chip); }
+  .opt .dot { width:11px; height:11px; border-radius:50%; flex:0 0 auto; }
+  .opt .ck { margin-left:auto; color:var(--accent); font-weight:800; }
+  .quick { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .quick button { flex:1 1 auto; padding:13px 10px; border-radius:12px; background:var(--chip);
+                  font-size:15px; font-weight:600; white-space:nowrap; }
+  .quick button:active { background:var(--accent); color:var(--on-accent); }
+  .sheet input[type=date] {
+    width:100%; padding:13px; border:1px solid var(--line); border-radius:12px;
+    background:var(--card); font-size:16px; -webkit-appearance:none; margin-bottom:6px;
+  }
+
+  /* ---------- Detailansicht ---------- */
+  .full { position:fixed; inset:0; z-index:50; background:var(--cream);
+          transform:translateY(100%); transition:transform .27s cubic-bezier(.25,.8,.3,1);
+          display:flex; flex-direction:column; }
+  .full.on { transform:none; }
+  .full-hdr { display:flex; align-items:center; gap:8px; padding:calc(var(--top) + 8px) 12px 10px;
+              border-bottom:1px solid var(--line); flex:0 0 auto; }
+  .full-hdr .t { flex:1; font-size:16px; font-weight:700; text-align:center; }
+  .full-hdr button { padding:8px 10px; font-size:16px; font-weight:600; color:var(--accent);
+                     border-radius:10px; white-space:nowrap; }
+  .full-hdr button:disabled { opacity:.4; }
+  .full-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+               padding:16px 16px calc(28px + var(--bot)); }
+  .f-label { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
+             color:var(--muted); margin:20px 0 7px; }
+  .f-label:first-child { margin-top:0; }
+  #dTitle {
+    width:100%; border:none; background:none; font-size:22px; font-weight:700;
+    letter-spacing:-.02em; padding:0; resize:none; overflow:hidden; line-height:1.25;
+  }
+  #dTitle:focus { outline:none; }
+  #dDesc {
+    width:100%; min-height:120px; padding:13px; border:1px solid var(--line); border-radius:13px;
+    background:var(--card); font-size:16px; line-height:1.5; resize:vertical; -webkit-appearance:none;
+  }
+  #dDesc:focus { outline:none; border-color:var(--accent); }
+  .rowbtns { display:flex; gap:9px; }
+  .rowbtns .pick { flex:1; padding:13px; border-radius:13px; background:var(--card);
+                   box-shadow:var(--shadow); font-size:15px; font-weight:600; text-align:left;
+                   display:flex; align-items:center; gap:8px; min-width:0; }
+  .rowbtns .pick span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tagrow { display:flex; flex-wrap:wrap; gap:7px; }
+  .tagopt { font-size:12px; font-weight:800; padding:8px 12px; border-radius:11px;
+            border:2px solid var(--line); color:var(--muted); }
+  .tagopt.on { color:#fff; border-color:transparent; }
+  .grp-lbl { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
+             color:var(--muted); margin:11px 0 6px; }
+
+  .cmt { background:var(--card); border-radius:13px; padding:11px 13px; margin-bottom:8px; box-shadow:var(--shadow); }
+  .cmt .when { font-size:11px; color:var(--muted); margin-bottom:4px; }
+  .cmt-add { display:flex; gap:8px; align-items:flex-end; margin-top:10px; }
+  .cmt-add textarea {
+    flex:1; min-height:44px; max-height:150px; padding:12px 13px; border:1px solid var(--line);
+    border-radius:13px; background:var(--card); font-size:16px; resize:none; -webkit-appearance:none;
+  }
+  .cmt-add textarea:focus { outline:none; border-color:var(--accent); }
+  .cmt-add button { flex:0 0 auto; width:44px; height:44px; border-radius:50%;
+                    background:var(--accent); color:var(--on-accent); display:flex;
+                    align-items:center; justify-content:center; }
+  .cmt-add button:disabled { opacity:.35; }
+
+  .md { font-size:15px; line-height:1.5; word-break:break-word; }
+  .md ul, .md ol { margin:5px 0; padding-left:21px; }
+  .md h3, .md h4, .md h5 { font-size:15px; font-weight:700; margin:8px 0 3px; }
+  .md code { background:var(--chip); padding:1px 5px; border-radius:4px; font-size:.9em; }
+  .md a { color:var(--accent); }
+  .md div { min-height:3px; }
+
+  .wide { width:100%; padding:15px; border-radius:13px; font-size:16px; font-weight:600;
+          margin-top:12px; background:var(--card); box-shadow:var(--shadow); }
+  .wide.done { background:var(--accent); color:var(--on-accent); box-shadow:none; }
+  .wide.del { color:var(--overdue); background:none; box-shadow:none; }
+
+  /* ---------- Hinweisleiste ---------- */
+  #snack { position:fixed; left:12px; right:12px; bottom:calc(74px + var(--bot)); z-index:60;
+           background:var(--ink); color:var(--cream); border-radius:14px; padding:14px 16px;
+           display:flex; align-items:center; gap:12px; font-size:14.5px; font-weight:600;
+           box-shadow:0 6px 22px rgba(0,0,0,.3);
+           transform:translateY(140%); transition:transform .26s cubic-bezier(.25,.8,.3,1); }
+  #snack.on { transform:none; }
+  #snack span { flex:1; }
+  #snack button { color:var(--accent); font-weight:800; padding:4px 2px; }
+  #snack.err { background:var(--overdue); color:#fff; }
+  #snack.err button { color:#fff; text-decoration:underline; }
 </style>
 </head>
 <body>
 
-<div class="logo"></div>
-<h1>Mein Board</h1>
-<div class="sub">Verbindungstest — Version <b id="ver"></b></div>
+<header>
+  <div class="hdr-row">
+    <h1 id="vTitle">Heute</h1>
+    <button class="ico" id="bSearch" aria-label="Suchen">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4.2-4.2"/></svg>
+    </button>
+    <button class="ico" id="bFilter" aria-label="Filter">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18M6.5 12h11M10 19h4"/></svg>
+    </button>
+    <button class="ico" id="bReload" aria-label="Aktualisieren">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-.6 4"/><path d="M20 4v7h-7"/></svg>
+    </button>
+  </div>
+  <div class="searchbar hidden" id="searchBar">
+    <input type="search" id="search" placeholder="Titel, Beschreibung, Tag …" autocomplete="off">
+  </div>
+  <div class="statusbar hidden" id="statusBar"></div>
+</header>
 
-<div class="row"><span class="k">Anzeige</span><span class="v" id="mode">–</span></div>
-<div class="row"><span class="k">Netz</span><span class="v" id="net">–</span></div>
-<div class="row"><span class="k">Geladen um</span><span class="v" id="when">–</span></div>
-<div class="row"><span class="k">Google Sheets</span><span class="v" id="api">noch nicht geprüft</span></div>
+<main id="main"><div class="loading"><div class="spin"></div>Lädt…</div></main>
 
-<button id="btn">Verbindung zu Google Sheets testen</button>
-<div id="out"></div>
+<button id="fab" aria-label="Neues Ticket">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<nav>
+  <button data-view="today" class="on">
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h11M4 12h11M4 18h7"/><path d="M17.5 17.5l2 2 3.5-4"/></svg>
+    Heute
+  </button>
+  <button data-view="board">
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="6" height="16" rx="1.6"/><rect x="12" y="4" width="6" height="10" rx="1.6"/></svg>
+    Board
+  </button>
+</nav>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet"></div>
+
+<div class="full" id="detail">
+  <div class="full-hdr">
+    <button id="dClose">Abbrechen</button>
+    <div class="t" id="dHead">Ticket</div>
+    <button id="dSave">Sichern</button>
+  </div>
+  <div class="full-body" id="dBody"></div>
+</div>
+
+<div id="snack"><span id="snackText"></span><button id="snackBtn"></button></div>
 
 <script>
 (function(){
   "use strict";
-  var VERSION = "v1 — Testseite";
-  var WEBAPP_URL = "https://script.google.com/macros/s/AKfycbytXkgzfQMlYOtbWLCAUds3nigkz6IehOqm_-K8bUx-_vfqHZQXX4dV6k1u17Wa7WE8Qw/exec";
+
+  /* =====================================================================
+     Stammdaten — identisch zum Desktop-Board (mein-board.html)
+     ===================================================================== */
+  var STATUSES = ["Backlog","Do Next","Ongoing","Blocked","Waiting for Input","Done"];
+  var OPEN_STATUSES = STATUSES.filter(function(s){ return s !== "Done"; });
+  var STATUS_LABELS = { "Backlog":"Offen", "Do Next":"Als Nächstes", "Ongoing":"In Arbeit",
+                        "Blocked":"Blockiert", "Waiting for Input":"Wartet auf Input", "Done":"Erledigt" };
+  function statusLabel(s){ return STATUS_LABELS[s] || s; }
+
+  var TAG_GROUPS = [
+    { name:"MYO",           tags:["SLS","FIN","MKT","OPS","SF","BIZDEV"] },
+    { name:"PRIVAT",        tags:["EHE","SOLO"] },
+    { name:"KEINE ANGST",   tags:["KEINE ANGST"] },
+    { name:"WIEDERKEHREND", tags:["GEBURTSTAGE","ARBEIT"] }
+  ];
+  var TAG_EMOJI = { SLS:"🤝", FIN:"💰", MKT:"📣", OPS:"⚙️", SF:"☁️", BIZDEV:"🚀",
+                    EHE:"💍", SOLO:"🧘", "KEINE ANGST":"💎", GEBURTSTAGE:"🎂", ARBEIT:"🔁" };
+
+  var WEBAPP_URL   = "https://script.google.com/macros/s/AKfycbytXkgzfQMlYOtbWLCAUds3nigkz6IehOqm_-K8bUx-_vfqHZQXX4dV6k1u17Wa7WE8Qw/exec";
+  var WEBAPP_TOKEN = "";
+  var TAB_TICKETS = "Tickets", TAB_COMMENTS = "Comments", TAB_ACTIVITY = "Activity",
+      TAB_RECURRING = "Recurring", TAB_DONE = "Done";
+  var LEAD_DAYS = 2;
+
+  /* ---- Farben aus der Akzentfarbe ableiten, wie im Desktop-Board ---- */
+  function hx(h){ h=h.replace("#",""); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
+  function mixHex(a,b,wb){ var pa=hx(a),pb=hx(b); return "#"+[0,1,2].map(function(i){
+    return Math.round(pa[i]*(1-wb)+pb[i]*wb).toString(16).padStart(2,"0"); }).join(""); }
+  function darkenHex(h,amt){ return mixHex(h,"#000000",amt); }
+  function hexToHsl(hex){ var c=hx(hex).map(function(v){return v/255;}); var r=c[0],g=c[1],b=c[2];
+    var mx=Math.max(r,g,b),mn=Math.min(r,g,b),h=0,s=0,l=(mx+mn)/2,d=mx-mn;
+    if(d){ s = l>0.5 ? d/(2-mx-mn) : d/(mx+mn);
+      if(mx===r) h=(g-b)/d+(g<b?6:0); else if(mx===g) h=(b-r)/d+2; else h=(r-g)/d+4; h*=60; }
+    return [h,s,l]; }
+  function hslToHex(h,s,l){ h=((h%360)+360)%360;
+    var c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs((h/60)%2-1)), m=l-c/2, r,g,b;
+    if(h<60){r=c;g=x;b=0;} else if(h<120){r=x;g=c;b=0;} else if(h<180){r=0;g=c;b=x;}
+    else if(h<240){r=0;g=x;b=c;} else if(h<300){r=x;g=0;b=c;} else {r=c;g=0;b=x;}
+    return "#"+[r,g,b].map(function(v){ return Math.round((v+m)*255).toString(16).padStart(2,"0"); }).join(""); }
+
+  var DARK = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  var ACCENT = DARK ? "#D07A40" : "#C46730";
+  var INK    = DARK ? "#E9E4D8" : "#253B44";
+
+  var STATUS_COLORS = {
+    "Backlog": DARK ? "#5C6B73" : INK,
+    "Do Next": ACCENT,
+    "Ongoing": mixHex(ACCENT,"#ffffff",0.35),
+    "Blocked": darkenHex(ACCENT,0.30),
+    "Waiting for Input": mixHex(ACCENT,"#ffffff",0.62)
+  };
+  var TAG_COLOR = {};
+  (function(){
+    var hs = hexToHsl(ACCENT), h = hs[0], s = hs[1];
+    var sat = Math.min(0.62, Math.max(0.42, s)), lig = DARK ? 0.56 : 0.47;
+    var steps = [ {dh:-30,ds:0.02,dl:-0.04}, {dh:-8,ds:-0.06,dl:0.05},
+                  {dh:20,ds:0.00,dl:-0.02}, {dh:46,ds:-0.10,dl:0.03} ];
+    TAG_GROUPS.forEach(function(g,i){
+      var t = steps[i % steps.length];
+      g.color = hslToHex(h+t.dh, Math.min(0.7,Math.max(0.3,sat+t.ds)), Math.min(0.62,Math.max(0.38,lig+t.dl)));
+      g.tags.forEach(function(tg){ TAG_COLOR[tg] = g.color; });
+    });
+  })();
+  function tagColor(t){ return TAG_COLOR[t] || INK; }
+  function ticketColor(t){
+    var tags = t.tags || [];
+    for (var i=0;i<TAG_GROUPS.length;i++)
+      if (tags.some(function(tg){ return TAG_GROUPS[i].tags.indexOf(tg) >= 0; })) return TAG_GROUPS[i].color;
+    return ACCENT;
+  }
+  function ticketEmoji(t){
+    var tags = t.tags || [];
+    for (var i=0;i<TAG_GROUPS.length;i++)
+      for (var j=0;j<TAG_GROUPS[i].tags.length;j++){
+        var tg = TAG_GROUPS[i].tags[j];
+        if (tags.indexOf(tg) >= 0 && TAG_EMOJI[tg]) return TAG_EMOJI[tg];
+      }
+    return "";
+  }
+
+  /* =====================================================================
+     Zugriff auf Google Sheets — gleiche Schnittstelle wie im Desktop-Board
+     ===================================================================== */
+  async function apiCall(params){
+    var p = Object.assign({}, params);
+    if (WEBAPP_TOKEN) p.token = WEBAPP_TOKEN;
+    var usp = new URLSearchParams();
+    Object.keys(p).forEach(function(k){
+      var v = p[k];
+      if (v === null || v === undefined) return;
+      usp.set(k, (typeof v === "object") ? JSON.stringify(v) : String(v));
+    });
+    var res = await fetch(WEBAPP_URL + "?" + usp.toString(), { method:"GET", redirect:"follow" });
+    var data = await res.json();
+    if (data && data.error) throw new Error(data.error);
+    return data;
+  }
+  function readTab(tab){ return apiCall({ tab:tab }); }
+  function appendRow(tab,row){ return apiCall({ action:"append", tab:tab, row:row }); }
+  function updateRow(tab,idField,idValue,row){ return apiCall({ action:"update", tab:tab, idField:idField, idValue:idValue, row:row }); }
+  function deleteRows(tab,idField,idValue){ return apiCall({ action:"delete", tab:tab, idField:idField, idValue:idValue }); }
+
+  /* =====================================================================
+     Hilfsfunktionen — wortgleich aus dem Desktop-Board übernommen,
+     damit beide Clients exakt dieselben Daten schreiben
+     ===================================================================== */
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+  function toISO(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+  function todayISO(){ return toISO(new Date()); }
+  function parseISO(s){ if(!s) return null; var p=s.split("-").map(Number); return new Date(p[0],p[1]-1,p[2]); }
+  function daysBetween(a,b){ return Math.round((b-a)/86400000); }
+  function addDays(iso,n){ var d=parseISO(iso)||new Date(); d.setDate(d.getDate()+n); return toISO(d); }
+  function mondayOf(d){ var x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; }
+  function normTs(v){ var n=Number(v); return isFinite(n)&&v!=="" ? n : (Date.parse(v)||Date.now()); }
+  function normDate(v){
+    if (v === null || v === undefined) return "";
+    var s = String(v).trim(); if (!s) return "";
+    var m;
+    if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})/))) return m[1]+"-"+m[2]+"-"+m[3];
+    if ((m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/))) return m[3]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[1]).padStart(2,"0");
+    var MN = { Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12 };
+    if ((m = s.match(/\b([A-Z][a-z]{2})\s+(\d{1,2})\s+(\d{4})\b/)) && MN[m[1]])
+      return m[3]+"-"+String(MN[m[1]]).padStart(2,"0")+"-"+String(m[2]).padStart(2,"0");
+    var d = new Date(s);
+    return isNaN(d.getTime()) ? "" : toISO(d);
+  }
+  function ticketToRow(t){
+    return { id:t.id, title:t.title, dueDate:t.dueDate, status:t.status,
+             tags:(t.tags||[]).join(","), priority:t.priority||"",
+             description:t.description||"", series_id:t.series_id||"" };
+  }
+  function esc(s){ return (s||"").replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+
+  /* Datum menschenlesbar: "Heute", "Morgen", "Mo, 03.08." */
+  var WD_SHORT = ["So","Mo","Di","Mi","Do","Fr","Sa"];
+  function fmtDue(iso){
+    if (!iso) return "Kein Datum";
+    var d = parseISO(iso); if (!d) return "Kein Datum";
+    var diff = daysBetween(parseISO(todayISO()), d);
+    if (diff === 0) return "Heute";
+    if (diff === 1) return "Morgen";
+    if (diff === -1) return "Gestern";
+    var s = WD_SHORT[d.getDay()] + ", " + String(d.getDate()).padStart(2,"0") + "." + String(d.getMonth()+1).padStart(2,"0") + ".";
+    return (diff < -1) ? s + " (" + Math.abs(diff) + " T. über)" : s;
+  }
+  function dueClass(iso){
+    if (!iso) return "";
+    var diff = daysBetween(parseISO(todayISO()), parseISO(iso));
+    return diff < 0 ? "over" : (diff === 0 ? "today" : "");
+  }
+  function fmtWhen(ts){
+    var d = new Date(ts), diff = daysBetween(parseISO(todayISO()), parseISO(toISO(d)));
+    var time = String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+    if (diff === 0) return "Heute, " + time;
+    if (diff === -1) return "Gestern, " + time;
+    return String(d.getDate()).padStart(2,"0") + "." + String(d.getMonth()+1).padStart(2,"0") + "." + d.getFullYear() + ", " + time;
+  }
+
+  /* ---- Markdown (Anzeige) — vereinfachte Fassung des Desktop-Renderers ---- */
+  function mdInline(s){
+    return s.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
+            .replace(/__([^_]+)__/g,"<u>$1</u>")
+            .replace(/\*([^*\n]+)\*/g,"<em>$1</em>")
+            .replace(/`([^`]+)`/g,"<code>$1</code>")
+            .replace(/~~([^~]+)~~/g,"<del>$1</del>")
+            .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  }
+  function mdToHtml(text){
+    var lines = esc(text||"").split(/\r?\n/), out = "", list = null;
+    function closeList(){ if (list){ out += "</"+list+">"; list = null; } }
+    lines.forEach(function(line){
+      var m;
+      if ((m = line.match(/^\s*(#{1,3})\s+(.*)$/))){ closeList(); out += "<h3>"+mdInline(m[2])+"</h3>"; return; }
+      if ((m = line.match(/^\s*([-*])\s+(.*)$/))){
+        if (list !== "ul"){ closeList(); out += "<ul>"; list = "ul"; }
+        out += "<li>"+mdInline(m[2])+"</li>"; return;
+      }
+      if ((m = line.match(/^\s*\d+\.\s+(.*)$/))){
+        if (list !== "ol"){ closeList(); out += "<ol>"; list = "ol"; }
+        out += "<li>"+mdInline(m[1])+"</li>"; return;
+      }
+      closeList();
+      out += line.trim() === "" ? "<div><br></div>" : "<div>"+mdInline(line)+"</div>";
+    });
+    closeList();
+    return out;
+  }
+
+  /* =====================================================================
+     Serienlogik — 1:1 aus dem Desktop-Board, damit Wiederholungen
+     beim Erledigen am Handy korrekt weitergestellt werden
+     ===================================================================== */
+  function recMatches(s,d){
+    var st = parseISO(normDate(s.startDate)); if (!st) return false;
+    if (d < st) return false;
+    var ed = s.endDate ? parseISO(normDate(s.endDate)) : null; if (ed && d > ed) return false;
+    var iv = Math.max(1, parseInt(s.interval) || 1), freq = s.freq || "weekly";
+    if (freq === "daily") return daysBetween(st,d) % iv === 0;
+    if (freq === "weekly"){
+      var wd = (d.getDay()+6)%7;
+      var wds = String(s.weekdays||"").split(",").map(function(x){ return parseInt(x.trim()); }).filter(function(x){ return !isNaN(x); });
+      if (wds.length){ if (wds.indexOf(wd) < 0) return false; }
+      else if (wd !== ((st.getDay()+6)%7)) return false;
+      return Math.floor(daysBetween(mondayOf(st), mondayOf(d))/7) % iv === 0;
+    }
+    if (freq === "monthly"){
+      var lastDay = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+      var domRaw = String(s.dayOfMonth||"").toLowerCase();
+      var target = (domRaw === "last") ? lastDay : Math.min(parseInt(s.dayOfMonth) || st.getDate(), lastDay);
+      if (d.getDate() !== target) return false;
+      var mb = (d.getFullYear()-st.getFullYear())*12 + (d.getMonth()-st.getMonth());
+      return mb >= 0 && mb % iv === 0;
+    }
+    if (freq === "yearly"){
+      if (d.getMonth() !== st.getMonth()) return false;
+      var ld = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+      if (d.getDate() !== Math.min(st.getDate(), ld)) return false;
+      var yb = d.getFullYear() - st.getFullYear();
+      return yb >= 0 && yb % iv === 0;
+    }
+    return false;
+  }
+  function recFirstFrom(s, minISO){
+    var st = parseISO(normDate(s.startDate)); if (!st) return "";
+    var m = minISO ? parseISO(minISO) : null;
+    var c = (m && m > st) ? m : st;
+    var ed = s.endDate ? parseISO(normDate(s.endDate)) : null;
+    for (var i=0;i<4000;i++){
+      if (recMatches(s,c)) return toISO(c);
+      c = new Date(c.getFullYear(), c.getMonth(), c.getDate()+1);
+      if (ed && c > ed) return "";
+    }
+    return "";
+  }
+  function recNext(s, afterISO){
+    var d = parseISO(afterISO) || parseISO(normDate(s.startDate)); if (!d) return "";
+    var ed = s.endDate ? parseISO(normDate(s.endDate)) : null;
+    for (var i=0;i<4000;i++){
+      d = new Date(d.getFullYear(), d.getMonth(), d.getDate()+1);
+      if (recMatches(s,d)) return toISO(d);
+      if (ed && d > ed) return "";
+    }
+    return "";
+  }
+  function recToRow(s){
+    return { series_id:s.series_id, title:s.title||"", description:s.description||"", tags:s.tags||"",
+             priority:s.priority||"", status:s.status||"Backlog", freq:s.freq||"weekly",
+             interval:s.interval||1, weekdays:s.weekdays||"", dayOfMonth:s.dayOfMonth||"",
+             startDate:normDate(s.startDate), endDate:normDate(s.endDate),
+             nextDate:normDate(s.nextDate), active:(s.active===false)?"FALSE":"TRUE" };
+  }
+  function withinLead(iso){ return iso ? daysBetween(parseISO(todayISO()), parseISO(iso)) <= LEAD_DAYS : false; }
+  function findSeriesTicket(s){
+    return tickets.find(function(t){
+      return (t.series_id && t.series_id === s.series_id) || (t.title === s.title && t.dueDate === s.nextDate);
+    });
+  }
+  async function materializeOccurrence(s, iso){
+    var t = { id:uid(), title:s.title, description:s.description||"", dueDate:iso,
+              status:s.status||"Backlog", priority:s.priority||"",
+              tags:(s.tags||"").split(",").map(function(x){ return x.trim(); }).filter(Boolean),
+              comments:[], series_id:s.series_id };
+    tickets.push(t);
+    await appendRow(TAB_TICKETS, ticketToRow(t));
+    return t;
+  }
+  // Fällige Wiederholungen zu echten Karten machen. Das Aufräumen von Doubletten
+  // (dedupeSeriesTickets) bleibt bewusst dem Desktop überlassen — vom Handy aus
+  // sollen keine Tickets automatisch gelöscht werden.
+  async function ensureRecurring(){
+    for (var i=0;i<recurring.length;i++){
+      var s = recurring[i];
+      if (!s.active) continue;
+      if (!s.nextDate){
+        var f = recFirstFrom(s, todayISO());
+        if (f){ s.nextDate = f; try { await updateRow(TAB_RECURRING,"series_id",s.series_id,recToRow(s)); } catch(e){} }
+      }
+      if (!s.nextDate) continue;
+      if (!findSeriesTicket(s) && withinLead(s.nextDate)){
+        try { await materializeOccurrence(s, s.nextDate); } catch(e){}
+      }
+    }
+  }
+
+  /* =====================================================================
+     Zustand
+     ===================================================================== */
+  var tickets = [], recurring = [], doneTabOk = false;
+  var view = "today", boardStatus = "Backlog";
+  var query = "", filterTags = [], loaded = false;
+  var editing = null;       // Ticket in der Detailansicht (null = neu)
+  var draft = null;         // Arbeitskopie der Detailansicht
+  var undoAction = null, snackTimer = null;
 
   var $ = function(id){ return document.getElementById(id); };
-  $("ver").textContent = VERSION;
 
-  // Läuft die Seite als Homescreen-App oder noch im Safari-Tab?
-  var standalone = window.navigator.standalone === true ||
-                   window.matchMedia("(display-mode: standalone)").matches;
-  $("mode").textContent = standalone ? "Homescreen-App ✓" : "Safari-Tab";
-  $("mode").className = "v " + (standalone ? "ok" : "");
+  /* =====================================================================
+     Laden
+     ===================================================================== */
+  async function loadAll(){
+    var res = await Promise.all([
+      readTab(TAB_TICKETS),
+      readTab(TAB_COMMENTS),
+      readTab(TAB_DONE).then(function(d){ return {ok:true,d:d}; }).catch(function(){ return {ok:false,d:[]}; }),
+      readTab(TAB_RECURRING).catch(function(){ return []; })
+    ]);
+    var rawT = res[0], rawC = res[1], doneRes = res[2], rawR = res[3];
+    doneTabOk = doneRes.ok && Array.isArray(doneRes.d);
 
-  $("net").textContent = navigator.onLine ? "online" : "offline";
-  $("when").textContent = new Date().toLocaleTimeString("de-DE");
+    var byTicket = {};
+    (rawC||[]).forEach(function(c){
+      (byTicket[c.ticket_id] = byTicket[c.ticket_id] || []).push(
+        { comment_id:c.comment_id, text:c.text, ts:normTs(c.timestamp) });
+    });
+    Object.keys(byTicket).forEach(function(k){ byTicket[k].sort(function(a,b){ return b.ts - a.ts; }); });
 
-  $("btn").addEventListener("click", async function(){
-    var btn = $("btn"), api = $("api"), out = $("out");
-    btn.disabled = true; btn.textContent = "Lädt…";
-    api.textContent = "…"; api.className = "v"; out.textContent = "";
-    var t0 = Date.now();
-    try {
-      var res = await fetch(WEBAPP_URL + "?tab=Tickets", { method: "GET", redirect: "follow" });
-      var data = await res.json();
-      if (data && data.error) throw new Error(data.error);
-      var n = Array.isArray(data) ? data.length : 0;
-      api.textContent = n + " Tickets ✓";
-      api.className = "v ok";
-      out.textContent = "Antwort in " + (Date.now() - t0) + " ms.\n" +
-        (n ? "Erstes Ticket: " + (data[0].title || "(ohne Titel)") : "Tabelle ist leer.");
-    } catch (e) {
-      api.textContent = "fehlgeschlagen";
-      api.className = "v bad";
-      out.textContent = "Fehler: " + (e.message || e);
-    } finally {
-      btn.disabled = false; btn.textContent = "Nochmal testen";
+    tickets = (rawT||[]).map(function(r){
+      return { id:r.id, title:r.title||"", dueDate:normDate(r.dueDate),
+               status:STATUSES.indexOf(r.status)>=0 ? r.status : STATUSES[0],
+               priority:r.priority||"", description:r.description||"",
+               tags:(r.tags||"").split(",").map(function(s){ return s.trim(); }).filter(Boolean),
+               comments:byTicket[r.id]||[], series_id:r.series_id||"" };
+    });
+
+    recurring = (Array.isArray(rawR)?rawR:[]).filter(function(x){ return x.series_id; }).map(function(x){
+      return { series_id:x.series_id, title:x.title||"", description:x.description||"", tags:x.tags||"",
+               priority:x.priority||"", status:STATUSES.indexOf(x.status)>=0 ? x.status : "Backlog",
+               freq:x.freq||"weekly", interval:parseInt(x.interval)||1, weekdays:x.weekdays||"",
+               dayOfMonth:x.dayOfMonth||"", startDate:normDate(x.startDate), endDate:normDate(x.endDate),
+               nextDate:normDate(x.nextDate), active:String(x.active).toUpperCase()!=="FALSE" };
+    });
+
+    await ensureRecurring();
+    loaded = true;
+  }
+
+  var reloading = false;
+  async function reload(silent){
+    if (reloading) return;
+    reloading = true;
+    $("bReload").style.opacity = ".4";
+    if (!silent){ $("main").innerHTML = '<div class="loading"><div class="spin"></div>Lädt…</div>'; }
+    try { await loadAll(); render(); }
+    catch(e){
+      if (!loaded) $("main").innerHTML = '<div class="empty">Laden fehlgeschlagen.<br>'+esc(e.message||String(e))+'</div>';
+      else snack("Laden fehlgeschlagen", null, true);
     }
+    finally { reloading = false; $("bReload").style.opacity = ""; }
+  }
+
+  function logActivity(type, t, text){
+    appendRow(TAB_ACTIVITY, { activity_id:uid(), ticket_id:t.id, type:type,
+                              title:t.title||"", text:text||"", timestamp:Date.now() }).catch(function(){});
+  }
+
+  /* =====================================================================
+     Filter
+     ===================================================================== */
+  function passes(t){
+    if (t.status === "Done") return false;
+    if (filterTags.length && !filterTags.some(function(tg){ return (t.tags||[]).indexOf(tg) >= 0; })) return false;
+    var q = query.trim().toLowerCase();
+    if (!q) return true;
+    return [t.title, t.description, statusLabel(t.status), (t.tags||[]).join(" "),
+            (t.comments||[]).map(function(c){ return c.text; }).join(" ")]
+           .join(" ").toLowerCase().indexOf(q) >= 0;
+  }
+
+  /* =====================================================================
+     Darstellung
+     ===================================================================== */
+  function cardHtml(t){
+    var col = ticketColor(t), em = ticketEmoji(t), n = (t.comments||[]).length;
+    return '<div class="card" data-id="'+t.id+'">'
+      + '<div class="bar" style="background:'+col+'"></div>'
+      + '<div class="body" data-act="open">'
+      +   '<div class="ttl">'+(em ? em+" " : "")+esc(t.title||"(ohne Titel)")+'</div>'
+      +   '<div class="meta">'
+      +     '<button class="pill st" data-act="status" style="background:'+(STATUS_COLORS[t.status]||ACCENT)+'">'+esc(statusLabel(t.status))+'</button>'
+      +     '<button class="pill dt '+dueClass(t.dueDate)+'" data-act="date">'+esc(fmtDue(t.dueDate))+'</button>'
+      +     (n ? '<span class="pill cm">💬 '+n+'</span>' : '')
+      +   '</div>'
+      + '</div>'
+      + '<button class="done-btn" data-act="done" aria-label="Erledigt"><span class="circ"></span></button>'
+      + '</div>';
+  }
+
+  function groupHtml(title, list, isOver){
+    if (!list.length) return "";
+    return '<section class="grp'+(isOver?" over":"")+'"><h2>'+title+' <b>'+list.length+'</b></h2>'
+         + list.map(cardHtml).join("") + '</section>';
+  }
+
+  function sortByDue(a,b){
+    if (!a.dueDate && !b.dueDate) return (a.title||"").localeCompare(b.title||"");
+    if (!a.dueDate) return 1;
+    if (!b.dueDate) return -1;
+    return a.dueDate < b.dueDate ? -1 : (a.dueDate > b.dueDate ? 1 : 0);
+  }
+
+  function renderToday(){
+    var open = tickets.filter(passes), today = todayISO();
+    var buckets = { over:[], today:[], tomorrow:[], week:[], later:[], none:[] };
+    open.forEach(function(t){
+      if (!t.dueDate){ buckets.none.push(t); return; }
+      var d = daysBetween(parseISO(today), parseISO(t.dueDate));
+      if (d < 0) buckets.over.push(t);
+      else if (d === 0) buckets.today.push(t);
+      else if (d === 1) buckets.tomorrow.push(t);
+      else if (d <= 7) buckets.week.push(t);
+      else buckets.later.push(t);
+    });
+    Object.keys(buckets).forEach(function(k){ buckets[k].sort(sortByDue); });
+
+    var html = groupHtml("Überfällig", buckets.over, true)
+             + groupHtml("Heute", buckets.today)
+             + groupHtml("Morgen", buckets.tomorrow)
+             + groupHtml("Diese Woche", buckets.week)
+             + groupHtml("Später", buckets.later)
+             + groupHtml("Ohne Datum", buckets.none);
+    $("main").innerHTML = html || '<div class="empty">'
+      + (query || filterTags.length ? "Nichts gefunden." : "Nichts offen. 🎉") + '</div>';
+  }
+
+  function renderBoard(){
+    var open = tickets.filter(passes);
+    $("statusBar").innerHTML = OPEN_STATUSES.map(function(s){
+      var n = open.filter(function(t){ return t.status === s; }).length;
+      return '<button class="sbtn'+(s===boardStatus?" on":"")+'" data-st="'+esc(s)+'">'
+           + esc(statusLabel(s)) + '<i>' + n + '</i></button>';
+    }).join("");
+    var list = open.filter(function(t){ return t.status === boardStatus; }).sort(sortByDue);
+    $("main").innerHTML = list.length
+      ? list.map(cardHtml).join("")
+      : '<div class="empty">Nichts in „'+esc(statusLabel(boardStatus))+'".</div>';
+  }
+
+  function render(){
+    $("vTitle").textContent = view === "today" ? "Heute" : "Board";
+    $("statusBar").classList.toggle("hidden", view !== "board");
+    $("bFilter").classList.toggle("on", filterTags.length > 0);
+    if (view === "today") renderToday(); else renderBoard();
+  }
+
+  /* =====================================================================
+     Hinweisleiste unten
+     ===================================================================== */
+  function snack(text, undoFn, isErr){
+    clearTimeout(snackTimer);
+    undoAction = undoFn || null;
+    $("snackText").textContent = text;
+    $("snackBtn").textContent = undoFn ? "Rückgängig" : "OK";
+    $("snack").classList.toggle("err", !!isErr);
+    $("snack").classList.add("on");
+    snackTimer = setTimeout(hideSnack, undoFn ? 7000 : 3500);
+  }
+  function hideSnack(){ $("snack").classList.remove("on"); undoAction = null; }
+  $("snackBtn").addEventListener("click", function(){
+    var fn = undoAction; hideSnack();
+    if (fn) fn();
   });
+
+  /* =====================================================================
+     Aktionen
+     ===================================================================== */
+  function byId(id){ return tickets.find(function(t){ return t.id === id; }); }
+
+  /* Karte optisch entfernen, dann im Hintergrund speichern */
+  function fadeCard(id, after){
+    var el = document.querySelector('.card[data-id="'+id+'"]');
+    if (!el){ after(); return; }
+    el.classList.add("going");
+    setTimeout(after, 200);
+  }
+
+  async function completeTicket(id){
+    var t = byId(id); if (!t) return;
+    var idx = tickets.indexOf(t), prev = t.status;
+    var series = t.series_id ? recurring.find(function(s){ return s.series_id === t.series_id; }) : null;
+    var prevNext = series ? series.nextDate : null;
+
+    tickets.splice(idx, 1);
+    fadeCard(id, render);
+
+    try {
+      if (series){
+        // Serie: Ticket verschwindet, Serie rückt auf den nächsten Termin vor
+        logActivity("status", t, prev + " → Done");
+        await deleteRows(TAB_TICKETS, "id", t.id);
+        var nx = recNext(series, series.nextDate || t.dueDate);
+        series.nextDate = nx;
+        await updateRow(TAB_RECURRING, "series_id", series.series_id, recToRow(series));
+        var created = null;
+        if (nx && withinLead(nx)) created = await materializeOccurrence(series, nx);
+        render();
+        snack("Erledigt · Serie weitergestellt", function(){ undoSeries(t, series, prevNext, created); });
+      } else {
+        if (!doneTabOk) throw new Error("Der 'Done'-Tab fehlt im Google Sheet.");
+        logActivity("status", t, prev + " → Done");
+        var row = Object.assign({}, ticketToRow(t), { status:"Done", doneAt:Date.now() });
+        await appendRow(TAB_DONE, row);
+        await deleteRows(TAB_TICKETS, "id", t.id);
+        snack("Erledigt", function(){ undoArchive(t); });
+      }
+    } catch(e){
+      tickets.splice(idx, 0, t);
+      render();
+      snack("Fehlgeschlagen: " + (e.message || e), null, true);
+    }
+  }
+
+  async function undoArchive(t){
+    try {
+      await appendRow(TAB_TICKETS, ticketToRow(t));
+      await deleteRows(TAB_DONE, "id", t.id);
+      tickets.push(t); render();
+      snack("Wiederhergestellt");
+    } catch(e){ snack("Rückgängig fehlgeschlagen", null, true); }
+  }
+  async function undoSeries(t, series, prevNext, created){
+    try {
+      if (created){
+        tickets = tickets.filter(function(x){ return x.id !== created.id; });
+        await deleteRows(TAB_TICKETS, "id", created.id);
+      }
+      await appendRow(TAB_TICKETS, ticketToRow(t));
+      tickets.push(t);
+      series.nextDate = prevNext;
+      await updateRow(TAB_RECURRING, "series_id", series.series_id, recToRow(series));
+      render();
+      snack("Wiederhergestellt");
+    } catch(e){ snack("Rückgängig fehlgeschlagen", null, true); }
+  }
+
+  /* Statuswechsel und Datumsänderung direkt von der Karte aus */
+  async function patchTicket(t, changes, logText){
+    var before = { status:t.status, dueDate:t.dueDate };
+    Object.assign(t, changes);
+    render();
+    try {
+      await updateRow(TAB_TICKETS, "id", t.id, ticketToRow(t));
+      if (logText) logActivity("status", t, logText);
+    } catch(e){
+      Object.assign(t, before); render();
+      snack("Speichern fehlgeschlagen", null, true);
+    }
+  }
+
+  /* =====================================================================
+     Bottom-Sheets
+     ===================================================================== */
+  function openSheet(html){
+    $("sheet").innerHTML = '<div class="grab"></div>' + html;
+    $("sheet").classList.add("on");
+    $("scrim").classList.add("on");
+  }
+  function closeSheet(){ $("sheet").classList.remove("on"); $("scrim").classList.remove("on"); }
+  $("scrim").addEventListener("click", closeSheet);
+
+  function statusSheet(current, onPick){
+    openSheet('<h3>Status</h3>' + OPEN_STATUSES.concat(["Done"]).map(function(s){
+      return '<button class="opt'+(s===current?" on":"")+'" data-pick="'+esc(s)+'">'
+           + '<span class="dot" style="background:'+(STATUS_COLORS[s]||ACCENT)+'"></span>'
+           + esc(statusLabel(s)) + (s===current?'<span class="ck">✓</span>':'') + '</button>';
+    }).join(""));
+    $("sheet").querySelectorAll("[data-pick]").forEach(function(b){
+      b.addEventListener("click", function(){ closeSheet(); onPick(b.dataset.pick); });
+    });
+  }
+
+  function dateSheet(current, onPick){
+    openSheet('<h3>Fällig am</h3>'
+      + '<div class="quick">'
+      +   '<button data-d="0">Heute</button>'
+      +   '<button data-d="1">Morgen</button>'
+      +   '<button data-d="7">+1 Woche</button>'
+      + '</div>'
+      + '<input type="date" id="sheetDate" value="'+esc(current||"")+'">'
+      + '<button class="opt" data-d="none" style="color:var(--muted)">Datum entfernen</button>');
+    $("sheet").querySelectorAll("[data-d]").forEach(function(b){
+      b.addEventListener("click", function(){
+        var v = b.dataset.d;
+        closeSheet();
+        onPick(v === "none" ? "" : addDays(todayISO(), parseInt(v)));
+      });
+    });
+    $("sheetDate").addEventListener("change", function(){
+      var v = this.value; closeSheet(); onPick(v);
+    });
+  }
+
+  function filterSheet(){
+    var html = '<h3>Nach Tags filtern</h3>';
+    TAG_GROUPS.forEach(function(g){
+      html += '<div class="grp-lbl">'+esc(g.name)+'</div><div class="tagrow">'
+        + g.tags.map(function(t){
+            var on = filterTags.indexOf(t) >= 0;
+            return '<button class="tagopt'+(on?" on":"")+'" data-tag="'+esc(t)+'"'
+                 + (on ? ' style="background:'+g.color+'"' : '') + '>'
+                 + (TAG_EMOJI[t]?TAG_EMOJI[t]+" ":"") + esc(t) + '</button>';
+          }).join("")
+        + '</div>';
+    });
+    html += '<button class="wide" id="clearFilter">Filter zurücksetzen</button>';
+    openSheet(html);
+    $("sheet").querySelectorAll("[data-tag]").forEach(function(b){
+      b.addEventListener("click", function(){
+        var tg = b.dataset.tag, i = filterTags.indexOf(tg);
+        if (i >= 0) filterTags.splice(i,1); else filterTags.push(tg);
+        filterSheet(); render();
+      });
+    });
+    $("clearFilter").addEventListener("click", function(){ filterTags = []; closeSheet(); render(); });
+  }
+
+  /* =====================================================================
+     Detailansicht
+     ===================================================================== */
+  function openDetail(t){
+    editing = t;
+    draft = t ? { title:t.title, description:t.description, dueDate:t.dueDate, status:t.status, tags:(t.tags||[]).slice() }
+              : { title:"", description:"", dueDate:todayISO(), status:"Backlog", tags:[] };
+    $("dHead").textContent = t ? "Ticket" : "Neues Ticket";
+    renderDetail();
+    $("detail").classList.add("on");
+    if (!t) setTimeout(function(){ $("dTitle").focus(); }, 320);
+  }
+  function closeDetail(){ $("detail").classList.remove("on"); editing = null; draft = null; }
+
+  function renderDetail(){
+    var t = editing, d = draft;
+    var html = '<textarea id="dTitle" rows="1" placeholder="Titel des Tickets">'+esc(d.title)+'</textarea>'
+      + '<div class="f-label">Status &amp; Fälligkeit</div>'
+      + '<div class="rowbtns">'
+      +   '<button class="pick" id="dStatus"><span class="dot" style="width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:'+(STATUS_COLORS[d.status]||ACCENT)+'"></span><span>'+esc(statusLabel(d.status))+'</span></button>'
+      +   '<button class="pick" id="dDate"><span>'+esc(fmtDue(d.dueDate))+'</span></button>'
+      + '</div>'
+      + '<div class="f-label">Tags</div><div id="dTags">';
+    TAG_GROUPS.forEach(function(g){
+      html += '<div class="grp-lbl">'+esc(g.name)+'</div><div class="tagrow">'
+        + g.tags.map(function(tg){
+            var on = d.tags.indexOf(tg) >= 0;
+            return '<button class="tagopt'+(on?" on":"")+'" data-tag="'+esc(tg)+'"'
+                 + (on ? ' style="background:'+g.color+'"' : '') + '>'
+                 + (TAG_EMOJI[tg]?TAG_EMOJI[tg]+" ":"") + esc(tg) + '</button>';
+          }).join("") + '</div>';
+    });
+    html += '</div><div class="f-label">Beschreibung</div>'
+      + '<textarea id="dDesc" placeholder="Beschreibung … (Markdown: **fett**, - Liste)">'+esc(d.description)+'</textarea>';
+
+    if (t){
+      html += '<div class="f-label">Kommentare</div><div id="dComments">'
+        + ((t.comments||[]).length
+            ? t.comments.map(function(c){
+                return '<div class="cmt"><div class="when">'+esc(fmtWhen(c.ts))+'</div>'
+                     + '<div class="md">'+mdToHtml(c.text)+'</div></div>';
+              }).join("")
+            : '<div style="color:var(--muted);font-size:14px">Noch keine Kommentare.</div>')
+        + '</div>'
+        + '<div class="cmt-add">'
+        +   '<textarea id="dCmt" rows="1" placeholder="Kommentar …"></textarea>'
+        +   '<button id="dCmtSend" disabled aria-label="Senden">'
+        +     '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg>'
+        +   '</button>'
+        + '</div>'
+        + '<button class="wide done" id="dDone">Als erledigt markieren</button>'
+        + '<button class="wide del" id="dDel">Ticket löschen</button>';
+    }
+    $("dBody").innerHTML = html;
+    wireDetail();
+  }
+
+  function autoGrow(el){ el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }
+
+  function wireDetail(){
+    var ta = $("dTitle");
+    autoGrow(ta);
+    ta.addEventListener("input", function(){ draft.title = ta.value.replace(/\n/g,""); autoGrow(ta); });
+    ta.addEventListener("keydown", function(e){ if (e.key === "Enter") e.preventDefault(); });
+
+    $("dDesc").addEventListener("input", function(){ draft.description = this.value; });
+
+    $("dStatus").addEventListener("click", function(){
+      statusSheet(draft.status, function(s){ draft.status = s; renderDetail(); });
+    });
+    $("dDate").addEventListener("click", function(){
+      dateSheet(draft.dueDate, function(v){ draft.dueDate = v; renderDetail(); });
+    });
+    $("dTags").querySelectorAll("[data-tag]").forEach(function(b){
+      b.addEventListener("click", function(){
+        var tg = b.dataset.tag, i = draft.tags.indexOf(tg);
+        if (i >= 0) draft.tags.splice(i,1); else draft.tags.push(tg);
+        renderDetail();
+      });
+    });
+
+    if ($("dCmt")){
+      var c = $("dCmt");
+      c.addEventListener("input", function(){
+        autoGrow(c); $("dCmtSend").disabled = !c.value.trim();
+      });
+      $("dCmtSend").addEventListener("click", sendComment);
+      $("dDone").addEventListener("click", function(){
+        var id = editing.id; closeDetail(); completeTicket(id);
+      });
+      $("dDel").addEventListener("click", deleteTicket);
+    }
+  }
+
+  async function saveDetail(){
+    if (!draft.title.trim()){ snack("Bitte einen Titel eingeben", null, true); return; }
+    var btn = $("dSave"); btn.disabled = true; btn.textContent = "Sichert…";
+    try {
+      if (editing){
+        var prev = editing.status;
+        Object.assign(editing, { title:draft.title.trim(), description:draft.description,
+                                 dueDate:draft.dueDate, status:draft.status, tags:draft.tags.slice() });
+        if (draft.status === "Done"){
+          var id = editing.id;
+          closeDetail(); render();
+          await completeTicket(id);
+        } else {
+          await updateRow(TAB_TICKETS, "id", editing.id, ticketToRow(editing));
+          if (draft.status !== prev) logActivity("status", editing, prev + " → " + draft.status);
+          closeDetail(); render();
+        }
+      } else {
+        var t = { id:uid(), title:draft.title.trim(), description:draft.description,
+                  dueDate:draft.dueDate, status:draft.status, tags:draft.tags.slice(),
+                  priority:"", comments:[], series_id:"" };
+        tickets.push(t);
+        await appendRow(TAB_TICKETS, ticketToRow(t));
+        logActivity("created", t, "");
+        closeDetail(); render();
+      }
+    } catch(e){
+      snack("Speichern fehlgeschlagen: " + (e.message || e), null, true);
+    } finally { btn.disabled = false; btn.textContent = "Sichern"; }
+  }
+
+  async function sendComment(){
+    var input = $("dCmt"), text = input.value.trim();
+    if (!text || !editing) return;
+    var btn = $("dCmtSend"); btn.disabled = true;
+    var c = { comment_id:uid(), text:text, ts:Date.now() };
+    try {
+      await appendRow(TAB_COMMENTS, { comment_id:c.comment_id, ticket_id:editing.id,
+                                      text:c.text, timestamp:c.ts });
+      (editing.comments = editing.comments || []).unshift(c);
+      renderDetail();
+      $("dBody").scrollTop = $("dBody").scrollHeight;
+    } catch(e){
+      btn.disabled = false;
+      snack("Kommentar fehlgeschlagen", null, true);
+    }
+  }
+
+  async function deleteTicket(){
+    if (!editing) return;
+    if (!confirm("Dieses Ticket wirklich löschen?")) return;
+    var t = editing, idx = tickets.indexOf(t);
+    tickets.splice(idx, 1);
+    closeDetail(); render();
+    try {
+      await deleteRows(TAB_TICKETS, "id", t.id);
+      await deleteRows(TAB_COMMENTS, "ticket_id", t.id);
+      snack("Gelöscht");
+    } catch(e){
+      tickets.splice(idx, 0, t); render();
+      snack("Löschen fehlgeschlagen", null, true);
+    }
+  }
+
+  /* =====================================================================
+     Verdrahtung
+     ===================================================================== */
+  $("main").addEventListener("click", function(e){
+    var el = e.target.closest("[data-act]"); if (!el) return;
+    var card = el.closest(".card"); if (!card) return;
+    var t = byId(card.dataset.id); if (!t) return;
+    var act = el.dataset.act;
+
+    if (act === "open") openDetail(t);
+    else if (act === "done") completeTicket(t.id);
+    else if (act === "status") statusSheet(t.status, function(s){
+      if (s === t.status) return;
+      if (s === "Done"){ completeTicket(t.id); return; }
+      patchTicket(t, { status:s }, t.status + " → " + s);
+    });
+    else if (act === "date") dateSheet(t.dueDate, function(v){
+      if (v !== t.dueDate) patchTicket(t, { dueDate:v });
+    });
+  });
+
+  $("statusBar").addEventListener("click", function(e){
+    var b = e.target.closest("[data-st]"); if (!b) return;
+    boardStatus = b.dataset.st; render();
+  });
+
+  document.querySelectorAll("nav button").forEach(function(b){
+    b.addEventListener("click", function(){
+      document.querySelectorAll("nav button").forEach(function(x){ x.classList.remove("on"); });
+      b.classList.add("on");
+      view = b.dataset.view;
+      render();
+      window.scrollTo(0,0);
+    });
+  });
+
+  $("bSearch").addEventListener("click", function(){
+    var bar = $("searchBar"), show = bar.classList.contains("hidden");
+    bar.classList.toggle("hidden", !show);
+    $("bSearch").classList.toggle("on", show);
+    if (show) $("search").focus();
+    else { $("search").value = ""; query = ""; render(); }
+  });
+  $("search").addEventListener("input", function(){ query = this.value; render(); });
+  $("bFilter").addEventListener("click", filterSheet);
+  $("bReload").addEventListener("click", function(){ reload(true); });
+  $("fab").addEventListener("click", function(){ openDetail(null); });
+  $("dClose").addEventListener("click", closeDetail);
+  $("dSave").addEventListener("click", saveDetail);
+
+  /* Beim Zurückkehren zur App die Daten auffrischen */
+  document.addEventListener("visibilitychange", function(){
+    if (!document.hidden && loaded) reload(true);
+  });
+
+  reload(false);
 })();
 </script>
 </body>
