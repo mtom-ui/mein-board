@@ -79,6 +79,20 @@
   .sbtn.on { background:var(--accent); color:var(--on-accent); }
   .sbtn i { font-style:normal; opacity:.65; margin-left:5px; }
 
+  /* Verteilungsbalken: optisch nur ein Haarstrich, die Polsterung sorgt
+     aber fuer eine brauchbare Tippflaeche. */
+  .dashbar { display:flex; align-items:center; gap:7px; width:100%; padding:2px 14px 11px; }
+  .dashbar .segs { flex:1; display:flex; gap:3px; height:6px; }
+  .dashbar .segs span { border-radius:3px; min-width:5px; }
+  .dashbar .warn { width:8px; height:8px; border-radius:50%; background:var(--overdue); flex:0 0 auto; }
+  .dash-row { display:flex; align-items:center; gap:11px; width:100%; padding:13px 12px;
+              border-radius:13px; font-size:16px; font-weight:600; text-align:left; }
+  .dash-row:active { background:var(--chip); }
+  .dash-row .nm { flex:1; }
+  .dash-row .pct { color:var(--muted); font-weight:600; font-size:13.5px; min-width:42px; text-align:right; }
+  .dash-row .arr { color:var(--muted); font-weight:400; }
+  .dash-sep { border-top:1px solid var(--line); margin:9px 0 3px; }
+
   /* ---------- Inhalt ---------- */
   main { padding:14px 14px calc(96px + var(--bot)); min-height:60vh; }
   .grp { margin-bottom:22px; }
@@ -274,6 +288,7 @@
     <input type="search" id="search" placeholder="Titel, Beschreibung, Tag …" autocomplete="off">
   </div>
   <div class="statusbar hidden" id="statusBar"></div>
+  <button class="dashbar" id="dashBar" aria-label="Verteilung nach Status"></button>
 </header>
 
 <main id="main"><div class="loading"><div class="spin"></div>Lädt…</div></main>
@@ -999,12 +1014,45 @@
       : '<div class="empty">Nichts in „'+esc(statusLabel(boardStatus))+'".</div>';
   }
 
+  /* Verteilung ueber die gerade sichtbaren Tickets — folgt also Filter und Suche */
+  function dashStats(){
+    var open = tickets.filter(passes), today = parseISO(todayISO());
+    var counts = OPEN_STATUSES.map(function(s){
+      return open.filter(function(t){ return t.status === s; }).length;
+    });
+    return {
+      counts: counts,
+      total: counts.reduce(function(a,b){ return a+b; }, 0),
+      overdue: open.filter(function(t){ return t.dueDate && parseISO(t.dueDate) < today; }).length
+    };
+  }
+  function renderDash(){
+    var st = dashStats();
+    var segs = st.total
+      ? OPEN_STATUSES.map(function(s,i){
+          return st.counts[i] ? '<span style="flex:'+st.counts[i]+';background:'+STATUS_COLORS[s]+'"></span>' : "";
+        }).join("")
+      : '<span style="flex:1;background:var(--line)"></span>';
+    $("dashBar").innerHTML = (st.overdue ? '<span class="warn"></span>' : '')
+      + '<span class="segs">' + segs + '</span>';
+  }
+
   function render(){
     if (!loaded) return;
     $("vTitle").textContent = view === "today" ? "Heute" : "Board";
     $("statusBar").classList.toggle("hidden", view !== "board");
     $("bFilter").classList.toggle("on", filterTags.length > 0);
+    renderDash();
     if (view === "today") renderToday(); else renderBoard();
+  }
+
+  function setView(v){
+    view = v;
+    document.querySelectorAll("nav button").forEach(function(x){
+      x.classList.toggle("on", x.dataset.view === v);
+    });
+    render();
+    window.scrollTo(0,0);
   }
 
   /* =====================================================================
@@ -1192,6 +1240,42 @@
       });
     });
     $("clearFilter").addEventListener("click", function(){ filterTags = []; closeSheet(); render(); });
+  }
+
+  function dashSheet(){
+    var st = dashStats();
+    var scope = (filterTags.length || query.trim()) ? " (gefiltert)" : "";
+    var html = '<h3>Verteilung' + scope + '</h3>';
+    OPEN_STATUSES.forEach(function(s,i){
+      var pct = st.total ? Math.round(st.counts[i] / st.total * 100) : 0;
+      html += '<button class="dash-row" data-jump="'+esc(s)+'">'
+        + '<span class="dot" style="width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:'+STATUS_COLORS[s]+'"></span>'
+        + '<span class="nm">'+esc(statusLabel(s))+'</span>'
+        + '<b>'+st.counts[i]+'</b>'
+        + '<span class="pct">'+pct+' %</span>'
+        + '<span class="arr">›</span></button>';
+    });
+    html += '<div class="dash-sep"></div>';
+    html += st.overdue
+      ? '<button class="dash-row" id="jumpOver" style="color:var(--overdue)">'
+        + '<span class="dot" style="width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:var(--overdue)"></span>'
+        + '<span class="nm">'+st.overdue+' überfällig</span><span class="arr">›</span></button>'
+      : '<div class="dash-row" style="color:var(--muted)">'
+        + '<span class="dot" style="width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:var(--line)"></span>'
+        + '<span class="nm">Nichts überfällig</span></div>';
+    openSheet(html);
+
+    $("sheet").querySelectorAll("[data-jump]").forEach(function(b){
+      b.addEventListener("click", function(){
+        boardStatus = b.dataset.jump;
+        closeSheet();
+        setView("board");
+      });
+    });
+    if ($("jumpOver")) $("jumpOver").addEventListener("click", function(){
+      closeSheet();
+      setView("today");
+    });
   }
 
   function themeSheet(){
@@ -1438,14 +1522,9 @@
   });
 
   document.querySelectorAll("nav button").forEach(function(b){
-    b.addEventListener("click", function(){
-      document.querySelectorAll("nav button").forEach(function(x){ x.classList.remove("on"); });
-      b.classList.add("on");
-      view = b.dataset.view;
-      render();
-      window.scrollTo(0,0);
-    });
+    b.addEventListener("click", function(){ setView(b.dataset.view); });
   });
+  $("dashBar").addEventListener("click", dashSheet);
 
   $("bSearch").addEventListener("click", function(){
     var bar = $("searchBar"), show = bar.classList.contains("hidden");
