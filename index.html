@@ -122,11 +122,13 @@
          box-shadow:0 5px 18px rgba(37,59,68,.3); display:flex; align-items:center; justify-content:center; }
   #fab:active { background:var(--accent-dark); }
 
-  /* ---------- Bottom-Sheet ---------- */
-  .scrim { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.35);
+  /* ---------- Bottom-Sheet ----------
+     Muss ueber der Detailansicht (z-index 50) liegen, sonst oeffnet sich
+     die Status- und Datumsauswahl unsichtbar dahinter. */
+  .scrim { position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.35);
            opacity:0; pointer-events:none; transition:opacity .22s; }
   .scrim.on { opacity:1; pointer-events:auto; }
-  .sheet { position:fixed; left:0; right:0; bottom:0; z-index:41; background:var(--sheet);
+  .sheet { position:fixed; left:0; right:0; bottom:0; z-index:61; background:var(--sheet);
            border-radius:22px 22px 0 0; padding:8px 16px calc(20px + var(--bot));
            transform:translateY(101%); transition:transform .26s cubic-bezier(.25,.8,.3,1);
            max-height:88vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
@@ -237,7 +239,7 @@
   /* ---------- Rueckmeldeleiste ----------
      Muss im Ruhezustand wirklich verschwinden: sie sitzt 74px ueber dem
      Rand, ein blosses Verschieben um die eigene Hoehe reicht dafuer nicht. */
-  #snack { position:fixed; left:12px; right:12px; bottom:calc(74px + var(--bot)); z-index:60;
+  #snack { position:fixed; left:12px; right:12px; bottom:calc(74px + var(--bot)); z-index:70;
            background:var(--ink); color:var(--cream); border-radius:14px; padding:14px 16px;
            display:flex; align-items:center; gap:12px; font-size:14.5px; font-weight:600;
            box-shadow:0 6px 22px rgba(0,0,0,.3);
@@ -1131,24 +1133,38 @@
   }
 
   function dateSheet(current, onPick){
-    openSheet('<h3>Fällig am</h3>'
+    var base = current || todayISO();
+    var html = '<h3>Fällig am</h3>'
       + '<div class="quick">'
-      +   '<button data-d="0">Heute</button>'
-      +   '<button data-d="1">Morgen</button>'
-      +   '<button data-d="7">+1 Woche</button>'
-      + '</div>'
+      +   '<button data-abs="0">Heute</button>'
+      +   '<button data-abs="1">Morgen</button>'
+      +   '<button data-abs="7">+1 Woche</button>'
+      + '</div>';
+    if (current){
+      html += '<div class="grp-lbl">Verschieben ab ' + esc(fmtDue(current)) + '</div>'
+        + '<div class="quick">'
+        +   '<button data-rel="-1">−1 Tag</button>'
+        +   '<button data-rel="1">+1 Tag</button>'
+        +   '<button data-rel="7">+1 Woche</button>'
+        + '</div>';
+    }
+    html += '<div class="grp-lbl">Genaues Datum</div>'
       + '<input type="date" id="sheetDate" value="'+esc(current||"")+'">'
-      + '<button class="opt" data-d="none" style="color:var(--muted)">Datum entfernen</button>');
-    $("sheet").querySelectorAll("[data-d]").forEach(function(b){
-      b.addEventListener("click", function(){
-        var v = b.dataset.d;
-        closeSheet();
-        onPick(v === "none" ? "" : addDays(todayISO(), parseInt(v)));
-      });
+      + '<button class="wide done" id="dateOk">Übernehmen</button>'
+      + '<button class="opt" id="dateClear" style="color:var(--muted)">Datum entfernen</button>';
+    openSheet(html);
+
+    function pick(v){ closeSheet(); onPick(v); }
+    $("sheet").querySelectorAll("[data-abs]").forEach(function(b){
+      b.addEventListener("click", function(){ pick(addDays(todayISO(), parseInt(b.dataset.abs))); });
     });
-    $("sheetDate").addEventListener("change", function(){
-      var v = this.value; closeSheet(); onPick(v);
+    $("sheet").querySelectorAll("[data-rel]").forEach(function(b){
+      b.addEventListener("click", function(){ pick(addDays(base, parseInt(b.dataset.rel))); });
     });
+    // Bewusst kein Auto-Schliessen bei "change": das iOS-Datumsrad meldet
+    // jede Drehung, das Sheet wuerde mitten in der Auswahl zuklappen.
+    $("dateOk").addEventListener("click", function(){ pick($("sheetDate").value || ""); });
+    $("dateClear").addEventListener("click", function(){ pick(""); });
   }
 
   function filterSheet(){
