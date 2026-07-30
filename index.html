@@ -235,6 +235,37 @@
   .cmt .when { font-size:11px; color:var(--muted); margin-bottom:4px; }
   .cmt-box { margin-top:12px; }
 
+  /* ---------- Infos ---------- */
+  .icard { display:flex; align-items:flex-start; gap:10px; background:var(--card); border-radius:15px;
+           margin-bottom:9px; padding:13px 14px; box-shadow:var(--shadow); width:100%; text-align:left; }
+  .icard .imain { flex:1; min-width:0; display:block; }
+  .icard .ittl { display:block; font-size:15.5px; font-weight:600; line-height:1.3; word-break:break-word; }
+  .icard .isub { display:block; font-size:12.5px; color:var(--muted); margin-top:3px;
+                 overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .icard .idots { display:flex; gap:3px; flex:0 0 auto; padding-top:5px; }
+  .icard .idot { width:8px; height:8px; border-radius:50%; }
+  .istar { color:var(--accent); }
+  .ikv { margin-bottom:10px; }
+  .ikv .ik { font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  .ikv .iv { display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+             font-size:16px; padding:11px 13px; margin-top:5px; background:var(--card);
+             border-radius:12px; box-shadow:var(--shadow); word-break:break-all; }
+  .ikv .iv:active { background:var(--chip); }
+  .ikv .isw { width:17px; height:17px; border-radius:5px; border:1px solid var(--line); flex:0 0 auto; }
+  .ikv .ival { flex:1; min-width:0; }
+  .ikv .icp { flex:0 0 auto; color:var(--muted); }
+  .irow { display:flex; gap:6px; margin-bottom:7px; align-items:center; }
+  .irow input { flex:1; min-width:0; padding:11px 12px; border-radius:11px; border:1px solid var(--line);
+                background:var(--card); color:var(--ink); font-family:inherit; font-size:16px; -webkit-appearance:none; }
+  .irow input:focus { outline:none; border-color:var(--accent); }
+  .irow input.ik-in { flex:0 0 38%; }
+  .irow .idel { flex:0 0 auto; color:var(--muted); padding:8px 4px; font-size:17px; }
+  .ihead { font-size:21px; font-weight:800; letter-spacing:-.02em; line-height:1.25;
+           margin:0 0 10px; word-break:break-word; }
+  .isetup { font-size:15px; line-height:1.6; color:var(--muted); padding:26px 4px; }
+  .isetup b { color:var(--ink); }
+  .isetup code { background:var(--chip); border-radius:5px; padding:1px 5px; font-size:14px; }
+
   .md { font-size:15px; line-height:1.5; word-break:break-word; }
   .md ul { list-style:disc outside; margin:5px 0; padding-left:22px; }
   .md ol { list-style:decimal outside; margin:5px 0; padding-left:25px; }
@@ -306,6 +337,10 @@
     <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="6" height="16" rx="1.6"/><rect x="12" y="4" width="6" height="10" rx="1.6"/></svg>
     Board
   </button>
+  <button data-view="infos">
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3.5 3.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M8 10h5M8 14h7"/></svg>
+    Infos
+  </button>
 </nav>
 
 <div class="scrim" id="scrim"></div>
@@ -347,7 +382,7 @@
   var WEBAPP_URL   = "https://script.google.com/macros/s/AKfycbytXkgzfQMlYOtbWLCAUds3nigkz6IehOqm_-K8bUx-_vfqHZQXX4dV6k1u17Wa7WE8Qw/exec";
   var WEBAPP_TOKEN = "";
   var TAB_TICKETS = "Tickets", TAB_COMMENTS = "Comments", TAB_ACTIVITY = "Activity",
-      TAB_RECURRING = "Recurring", TAB_DONE = "Done";
+      TAB_RECURRING = "Recurring", TAB_DONE = "Done", TAB_INFOS = "Infos";
   var LEAD_DAYS = 2;
 
   /* =====================================================================
@@ -868,6 +903,10 @@
   var query = "", filterTags = [], loaded = false;
   var editing = null;       // Ticket in der Detailansicht (null = neu)
   var draft = null;         // Arbeitskopie der Detailansicht
+  var infos = [], infosOk = false;
+  var infoEditing = null;   // Info in der Detailansicht (null = neu)
+  var infoDraft = null;
+  var infoMode = null;      // null = Ticket-Detail, "read" oder "edit" = Info-Detail
   var undoAction = null, snackTimer = null;
 
   var $ = function(id){ return document.getElementById(id); };
@@ -880,10 +919,17 @@
       readTab(TAB_TICKETS),
       readTab(TAB_COMMENTS),
       readTab(TAB_DONE).then(function(d){ return {ok:true,d:d}; }).catch(function(){ return {ok:false,d:[]}; }),
-      readTab(TAB_RECURRING).catch(function(){ return []; })
+      readTab(TAB_RECURRING).catch(function(){ return []; }),
+      readTab(TAB_INFOS).then(function(d){ return {ok:true,d:d}; }).catch(function(){ return {ok:false,d:[]}; })
     ]);
-    var rawT = res[0], rawC = res[1], doneRes = res[2], rawR = res[3];
+    var rawT = res[0], rawC = res[1], doneRes = res[2], rawR = res[3], infoRes = res[4];
     doneTabOk = doneRes.ok && Array.isArray(doneRes.d);
+    infosOk = infoRes.ok && Array.isArray(infoRes.d);
+    infos = (infosOk ? infoRes.d : []).filter(function(r){ return r && r.id; }).map(function(r){
+      return { id:r.id, title:r.title||"", rows:r.rows||"", body:r.body||"",
+               tags:String(r.tags||"").split(",").map(function(s){ return s.trim(); }).filter(Boolean),
+               pinned:String(r.pinned||"").toUpperCase()==="TRUE", updatedAt:normTs(r.updatedAt) };
+    });
 
     var byTicket = {};
     (rawC||[]).forEach(function(c){
@@ -1037,13 +1083,266 @@
       + '<span class="segs">' + segs + '</span>';
   }
 
+  /* =====================================================================
+     Infos — Nachschlagen (Tabelle "Bezeichnung: Wert" plus Markdown-Text)
+     ===================================================================== */
+  function infoRowsParse(text){
+    return String(text||"").split(/\r?\n/).map(function(l){ return l.trim(); })
+      .filter(Boolean).map(function(l){
+        var i = l.indexOf(":");                    // am ersten Doppelpunkt trennen
+        return i < 0 ? { k:"", v:l } : { k:l.slice(0,i).trim(), v:l.slice(i+1).trim() };
+      });
+  }
+  function infoRowsSerialize(pairs){
+    return pairs.filter(function(p){ return (p.k||"").trim() || (p.v||"").trim(); })
+      .map(function(p){ return (p.k||"").trim() + ": " + (p.v||"").trim(); }).join("\n");
+  }
+  function infoToRow(n){
+    return { id:n.id, title:n.title||"", rows:n.rows||"", body:n.body||"",
+             tags:(n.tags||[]).join(","), pinned:n.pinned ? "TRUE" : "FALSE",
+             updatedAt:n.updatedAt||Date.now() };
+  }
+  function infoPasses(n){
+    if (filterTags.length && !filterTags.some(function(tg){ return (n.tags||[]).indexOf(tg) >= 0; })) return false;
+    var q = query.trim().toLowerCase();
+    if (!q) return true;
+    return [n.title, n.rows, n.body, (n.tags||[]).join(" ")].join(" ").toLowerCase().indexOf(q) >= 0;
+  }
+  function infoById(id){ return infos.find(function(n){ return n.id === id; }); }
+
+  function copyValue(txt){
+    function ok(){ snack("Kopiert"); }
+    function fallback(){
+      var ta = document.createElement("textarea");
+      ta.value = txt; ta.setAttribute("readonly","");
+      ta.style.position = "fixed"; ta.style.top = "-1000px"; ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select(); ta.setSelectionRange(0, txt.length);   // iOS braucht den Bereich
+      var done = false;
+      try { done = document.execCommand("copy"); } catch(e){}
+      document.body.removeChild(ta);
+      if (done) ok(); else snack("Kopieren nicht möglich", null, true);
+    }
+    if (navigator.clipboard && window.isSecureContext)
+      navigator.clipboard.writeText(txt).then(ok).catch(fallback);
+    else fallback();
+  }
+
+  function renderInfos(){
+    if (!infosOk){
+      $("main").innerHTML = '<div class="isetup">Der Tab <b>Infos</b> fehlt im Google Sheet.<br><br>'
+        + 'Lege dort einmalig ein Tabellenblatt <code>Infos</code> an, mit diesen Spalten in Zeile 1:<br><br>'
+        + '<code>id</code> <code>title</code> <code>rows</code> <code>body</code> '
+        + '<code>tags</code> <code>pinned</code> <code>updatedAt</code><br><br>'
+        + 'Danach oben auf „Aktualisieren“ tippen.</div>';
+      return;
+    }
+    var list = infos.filter(infoPasses).sort(function(a,b){
+      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+      return (a.title||"").localeCompare(b.title||"", "de", { sensitivity:"base" });
+    });
+    if (!list.length){
+      $("main").innerHTML = '<div class="empty">'
+        + (query || filterTags.length ? "Nichts gefunden." : "Noch keine Infos.<br>Unten rechts auf + tippen.")
+        + '</div>';
+      return;
+    }
+    $("main").innerHTML = list.map(function(n){
+      var pairs = infoRowsParse(n.rows);
+      var sub = pairs.length
+        ? pairs.map(function(p){ return p.k || p.v; }).join(" · ")
+        : (n.body ? n.body.replace(/[#*`\-]/g," ").replace(/\s+/g," ").trim() : "");
+      var dots = (n.tags||[]).map(function(t){
+        return '<span class="idot" style="background:'+tagColor(t)+'"></span>'; }).join("");
+      return '<button class="icard" data-info="'+esc(n.id)+'">'
+        + '<span class="imain"><span class="ittl">'+(n.pinned?'<span class="istar">★</span> ':'')
+        + esc(n.title||"(ohne Titel)")+'</span>'
+        + (sub ? '<span class="isub">'+esc(sub)+'</span>' : '') + '</span>'
+        + (dots ? '<span class="idots">'+dots+'</span>' : '')
+        + '</button>';
+    }).join("");
+  }
+
+  function openInfo(n){
+    infoEditing = n;
+    infoMode = n ? "read" : "edit";
+    infoDraft = n ? { title:n.title, rows:n.rows, body:n.body, tags:(n.tags||[]).slice(), pinned:!!n.pinned }
+                  : { title:"", rows:"", body:"", tags:[], pinned:false };
+    renderInfoDetail();
+    $("detail").classList.add("on");
+    if (!n) setTimeout(function(){ if ($("iTitle")) $("iTitle").focus(); }, 320);
+  }
+  function closeInfo(){
+    $("detail").classList.remove("on");
+    infoEditing = null; infoDraft = null; infoMode = null;
+  }
+  function syncInfoEditors(){
+    if (infoMode !== "edit" || !infoDraft) return;
+    if ($("iBody")) infoDraft.body = htmlToMd($("iBody"));
+    var rows = [].slice.call(document.querySelectorAll("#iRows .irow")).map(function(r){
+      return { k:r.querySelector(".ik-in").value, v:r.querySelector(".iv-in").value };
+    });
+    infoDraft.rows = infoRowsSerialize(rows);
+  }
+
+  function renderInfoDetail(){
+    $("dHead").textContent = infoMode === "edit" ? (infoEditing ? "Info" : "Neue Info") : "Info";
+    $("dClose").textContent = infoMode === "edit" ? (infoEditing ? "Abbrechen" : "Schließen") : "Fertig";
+    $("dSave").textContent = infoMode === "edit" ? "Sichern" : "Bearbeiten";
+    if (infoMode === "read") renderInfoRead(); else renderInfoEdit();
+  }
+
+  function renderInfoRead(){
+    var n = infoEditing, pairs = infoRowsParse(n.rows), html = "";
+    html += '<div class="ihead">'+(n.pinned?'<span class="istar">★</span> ':"")+esc(n.title||"(ohne Titel)")+'</div>';
+    if ((n.tags||[]).length){
+      html += '<div class="tagrow" style="margin-bottom:16px">' + n.tags.map(function(tg){
+        return '<span class="tagopt on" style="background:'+tagColor(tg)+';color:'+onColor(tagColor(tg))+'">'
+             + (TAG_EMOJI[tg]?TAG_EMOJI[tg]+" ":"") + esc(tg) + '</span>'; }).join("") + '</div>';
+    }
+    pairs.forEach(function(p, i){
+      var sw = /^#[0-9a-fA-F]{3,8}$/.test(p.v)
+        ? '<span class="isw" style="background:'+esc(p.v)+'"></span>' : '';
+      html += '<div class="ikv">'
+        + (p.k ? '<div class="ik">'+esc(p.k)+'</div>' : '')
+        + '<button class="iv" data-copy="'+i+'">'+sw
+        + '<span class="ival">'+esc(p.v)+'</span><span class="icp">kopieren</span></button></div>';
+    });
+    if (n.body) html += '<div class="md" style="margin-top:18px">'+mdToHtml(n.body)+'</div>';
+    html += '<button class="wide del" id="iDel" style="margin-top:26px">Info löschen</button>';
+    $("dBody").innerHTML = html;
+    $("dBody").querySelectorAll("[data-copy]").forEach(function(b){
+      b.addEventListener("click", function(){ copyValue(pairs[+b.dataset.copy].v); });
+    });
+    $("iDel").addEventListener("click", deleteInfo);
+  }
+
+  function infoRowAdd(k, v, focus){
+    var box = $("iRows");
+    var row = document.createElement("div");
+    row.className = "irow";
+    row.innerHTML = '<input class="ik-in" placeholder="Bezeichnung" value="'+esc(k||"")+'">'
+                  + '<input class="iv-in" placeholder="Wert" value="'+esc(v||"")+'">'
+                  + '<button class="idel" aria-label="Zeile entfernen">✕</button>';
+    box.appendChild(row);
+    row.querySelector(".idel").addEventListener("click", function(){
+      row.remove(); if (!box.children.length) infoRowAdd("","");
+    });
+    [row.querySelector(".ik-in"), row.querySelector(".iv-in")].forEach(function(inp){
+      inp.addEventListener("paste", function(e){
+        var txt = (e.clipboardData || window.clipboardData).getData("text");
+        if (!/[\t\n]/.test(txt)) return;
+        e.preventDefault();
+        var pairs = txt.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean)
+          .map(function(l){
+            if (l.indexOf("\t") >= 0){ var p = l.split("\t");
+              return { k:p[0].trim(), v:p.slice(1).join(" ").trim() }; }
+            var i = l.indexOf(":");
+            return i < 0 ? { k:"", v:l } : { k:l.slice(0,i).trim(), v:l.slice(i+1).trim() };
+          });
+        if (!row.querySelector(".ik-in").value && !row.querySelector(".iv-in").value) row.remove();
+        pairs.forEach(function(p){ infoRowAdd(p.k, p.v); });
+        if (!box.children.length) infoRowAdd("","");
+      });
+    });
+    if (focus) row.querySelector(".ik-in").focus();
+  }
+
+  function renderInfoEdit(){
+    var d = infoDraft;
+    var html = '<textarea id="iTitle" rows="1" placeholder="Titel, z. B. Kunde Meier">'+esc(d.title)+'</textarea>'
+      + '<div class="f-label">Tabelle</div><div id="iRows"></div>'
+      + '<button class="wide" id="iAddRow" style="margin-bottom:4px">+ Zeile</button>'
+      + '<div class="f-label">Text</div><div id="iBodyWrap"><div id="iBody"></div></div>'
+      + '<div class="f-label">Tags</div><div id="iTags">';
+    TAG_GROUPS.forEach(function(g){
+      html += '<div class="grp-lbl">'+esc(g.name)+'</div><div class="tagrow">'
+        + g.tags.map(function(tg){
+            var on = d.tags.indexOf(tg) >= 0;
+            return '<button class="tagopt'+(on?" on":"")+'" data-tag="'+esc(tg)+'"'
+                 + (on ? ' style="background:'+g.color+';color:'+onColor(g.color)+'"' : '') + '>'
+                 + (TAG_EMOJI[tg]?TAG_EMOJI[tg]+" ":"") + esc(tg) + '</button>';
+          }).join("") + '</div>';
+    });
+    html += '</div><div class="f-label">Oben anheften</div>'
+      + '<button class="wide" id="iPin">'+(d.pinned ? "★ Angeheftet" : "☆ Nicht angeheftet")+'</button>';
+    $("dBody").innerHTML = html;
+
+    var ta = $("iTitle");
+    autoGrow(ta);
+    ta.addEventListener("input", function(){ d.title = ta.value.replace(/\n/g,""); autoGrow(ta); });
+    ta.addEventListener("keydown", function(e){ if (e.key === "Enter") e.preventDefault(); });
+
+    var pairs = infoRowsParse(d.rows);
+    if (pairs.length) pairs.forEach(function(p){ infoRowAdd(p.k, p.v); }); else infoRowAdd("","");
+    $("iAddRow").addEventListener("click", function(){ infoRowAdd("","",true); });
+
+    initRTE($("iBody"), { placeholder:"Notizen, Anleitung, Liste … (optional)" });
+    rteSet($("iBody"), d.body);
+
+    $("iTags").querySelectorAll("[data-tag]").forEach(function(b){
+      b.addEventListener("click", function(){
+        var tg = b.dataset.tag, i = d.tags.indexOf(tg), on = i < 0;
+        if (on) d.tags.push(tg); else d.tags.splice(i,1);
+        b.classList.toggle("on", on);
+        b.style.background = on ? tagColor(tg) : "";
+        b.style.color = on ? onColor(tagColor(tg)) : "";
+      });
+    });
+    $("iPin").addEventListener("click", function(){
+      d.pinned = !d.pinned;
+      $("iPin").textContent = d.pinned ? "★ Angeheftet" : "☆ Nicht angeheftet";
+    });
+  }
+
+  async function saveInfo(){
+    syncInfoEditors();
+    if (!infoDraft.title.trim()){ snack("Bitte einen Titel eingeben", null, true); return; }
+    var btn = $("dSave"); btn.disabled = true; btn.textContent = "Sichert…";
+    try {
+      if (infoEditing){
+        var back = { title:infoEditing.title, rows:infoEditing.rows, body:infoEditing.body,
+                     tags:(infoEditing.tags||[]).slice(), pinned:infoEditing.pinned };
+        Object.assign(infoEditing, { title:infoDraft.title.trim(), rows:infoDraft.rows,
+                                     body:infoDraft.body, tags:infoDraft.tags.slice(),
+                                     pinned:infoDraft.pinned, updatedAt:Date.now() });
+        try { await updateRow(TAB_INFOS, "id", infoEditing.id, infoToRow(infoEditing)); }
+        catch(e){ Object.assign(infoEditing, back); throw e; }
+        infoMode = "read"; renderInfoDetail();
+      } else {
+        var n = { id:uid(), title:infoDraft.title.trim(), rows:infoDraft.rows, body:infoDraft.body,
+                  tags:infoDraft.tags.slice(), pinned:infoDraft.pinned, updatedAt:Date.now() };
+        await appendRow(TAB_INFOS, infoToRow(n));
+        infos.push(n);
+        infoEditing = n; infoMode = "read"; renderInfoDetail();
+      }
+      render();
+      snack("Gesichert");
+    } catch(e){ snack("Sichern fehlgeschlagen", null, true); }
+    finally { btn.disabled = false; renderInfoDetail(); }
+  }
+
+  async function deleteInfo(){
+    if (!infoEditing) return;
+    if (!confirm("Diese Info wirklich löschen?")) return;
+    var id = infoEditing.id;
+    try {
+      await deleteRows(TAB_INFOS, "id", id);
+      infos = infos.filter(function(n){ return n.id !== id; });
+      closeInfo(); render(); snack("Gelöscht");
+    } catch(e){ snack("Löschen fehlgeschlagen", null, true); }
+  }
+
   function render(){
     if (!loaded) return;
-    $("vTitle").textContent = view === "today" ? "Heute" : "Board";
+    $("vTitle").textContent = view === "today" ? "Heute" : (view === "board" ? "Board" : "Infos");
     $("statusBar").classList.toggle("hidden", view !== "board");
+    $("dashBar").classList.toggle("hidden", view === "infos");
     $("bFilter").classList.toggle("on", filterTags.length > 0);
     renderDash();
-    if (view === "today") renderToday(); else renderBoard();
+    if (view === "today") renderToday();
+    else if (view === "board") renderBoard();
+    else renderInfos();
   }
 
   function setView(v){
@@ -1317,7 +1616,10 @@
                   status:t.status, tags:(t.tags||[]).slice(), comment:"" }
               : { title:"", description:"", dueDate:todayISO(),
                   status:"Backlog", tags:[], comment:"" };
+    infoMode = null;                       // Kopfknoepfe aus dem Info-Modus zuruecksetzen
     $("dHead").textContent = t ? "Ticket" : "Neues Ticket";
+    $("dClose").textContent = "Abbrechen";
+    $("dSave").textContent = "Sichern";
     renderDetail();
     $("detail").classList.add("on");
     if (!t) setTimeout(function(){ $("dTitle").focus(); }, 320);
@@ -1499,6 +1801,8 @@
      Verdrahtung
      ===================================================================== */
   $("main").addEventListener("click", function(e){
+    var ic = e.target.closest("[data-info]");
+    if (ic){ var n = infoById(ic.dataset.info); if (n) openInfo(n); return; }
     var el = e.target.closest("[data-act]"); if (!el) return;
     var card = el.closest(".card"); if (!card) return;
     var t = byId(card.dataset.id); if (!t) return;
@@ -1537,13 +1841,25 @@
   $("bFilter").addEventListener("click", filterSheet);
   $("bTheme").addEventListener("click", themeSheet);
   $("bReload").addEventListener("click", function(){ reload(true); });
-  $("fab").addEventListener("click", function(){ openDetail(null); });
-  $("dClose").addEventListener("click", closeDetail);
-  $("dSave").addEventListener("click", saveDetail);
+  $("fab").addEventListener("click", function(){
+    if (view === "infos"){ if (infosOk) openInfo(null); else snack("Erst den Tab „Infos“ im Sheet anlegen", null, true); }
+    else openDetail(null);
+  });
+  // Die beiden Kopfknoepfe bedienen je nach Modus das Ticket- oder das Info-Detail
+  $("dClose").addEventListener("click", function(){
+    if (!infoMode) return closeDetail();
+    if (infoMode === "edit" && infoEditing){ infoMode = "read"; renderInfoDetail(); }
+    else closeInfo();
+  });
+  $("dSave").addEventListener("click", function(){
+    if (!infoMode) return saveDetail();
+    if (infoMode === "read"){ infoMode = "edit"; renderInfoDetail(); }
+    else saveInfo();
+  });
 
   /* Beim Zurueckkehren zur App die Daten auffrischen */
   document.addEventListener("visibilitychange", function(){
-    if (!document.hidden && loaded && !editing) reload(true);
+    if (!document.hidden && loaded && !editing && !infoMode) reload(true);
   });
 
   reload(false);
