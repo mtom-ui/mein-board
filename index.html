@@ -520,6 +520,18 @@
   /* =====================================================================
      Zugriff auf Google Sheets — gleiche Schnittstelle wie im Desktop-Board
      ===================================================================== */
+  /* Apps Script antwortet bei Stoerungen mit einer HTML-Seite statt mit JSON.
+     Lesende Aufrufe werden einmal wiederholt, schreibende nie — sonst Dubletten. */
+  function describeNonJson(res, text){
+    var t = String(text||"");
+    if (/accounts\.google\.com|Anmeldung|Sign in/i.test(t))
+      return "Google verlangt eine Anmeldung (HTTP " + res.status + ")";
+    if (/too many|quota|Dienst.*zu oft/i.test(t))
+      return "Google drosselt gerade — gleich nochmal versuchen";
+    if (/^\s*<!DOCTYPE|^\s*<html/i.test(t))
+      return "Fehlerseite statt Daten (HTTP " + res.status + ") — meist voruebergehend";
+    return "Unerwartete Antwort (HTTP " + res.status + ")";
+  }
   async function apiCall(params){
     var p = Object.assign({}, params);
     if (WEBAPP_TOKEN) p.token = WEBAPP_TOKEN;
@@ -529,10 +541,21 @@
       if (v === null || v === undefined) return;
       usp.set(k, (typeof v === "object") ? JSON.stringify(v) : String(v));
     });
-    var res = await fetch(WEBAPP_URL + "?" + usp.toString(), { method:"GET", redirect:"follow" });
-    var data = await res.json();
-    if (data && data.error) throw new Error(data.error);
-    return data;
+    var url = WEBAPP_URL + "?" + usp.toString();
+    if (url.length > 7500) throw new Error("Inhalt zu lang fuer eine Anfrage (" + url.length + " Zeichen)");
+    var readOnly = !p.action, tries = readOnly ? 2 : 1, lastErr = null;
+    for (var i = 0; i < tries; i++){
+      if (i) await new Promise(function(r){ setTimeout(r, 700); });
+      try {
+        var res = await fetch(url, { method:"GET", redirect:"follow" });
+        var text = await res.text(), data;
+        try { data = JSON.parse(text); }
+        catch(_){ throw new Error(describeNonJson(res, text)); }
+        if (data && data.error) throw new Error(data.error);
+        return data;
+      } catch(e){ lastErr = e; }
+    }
+    throw lastErr;
   }
   function readTab(tab){ return apiCall({ tab:tab }); }
   function appendRow(tab,row){ return apiCall({ action:"append", tab:tab, row:row }); }
@@ -903,7 +926,7 @@
   var query = "", filterTags = [], loaded = false;
   var editing = null;       // Ticket in der Detailansicht (null = neu)
   var draft = null;         // Arbeitskopie der Detailansicht
-  var infos = [], infosOk = false;
+  var infos = [], infosOk = false, infosMissing = false, infosError = "";
   var infoEditing = null;   // Info in der Detailansicht (null = neu)
   var infoDraft = null;
   var infoMode = null;      // null = Ticket-Detail, "read" oder "edit" = Info-Detail
@@ -920,11 +943,15 @@
       readTab(TAB_COMMENTS),
       readTab(TAB_DONE).then(function(d){ return {ok:true,d:d}; }).catch(function(){ return {ok:false,d:[]}; }),
       readTab(TAB_RECURRING).catch(function(){ return []; }),
-      readTab(TAB_INFOS).then(function(d){ return {ok:true,d:d}; }).catch(function(){ return {ok:false,d:[]}; })
+      readTab(TAB_INFOS).then(function(d){ return {ok:true,d:d}; })
+        .catch(function(e){ return {ok:false, d:[], err:(e && e.message) || String(e)}; })
     ]);
     var rawT = res[0], rawC = res[1], doneRes = res[2], rawR = res[3], infoRes = res[4];
     doneTabOk = doneRes.ok && Array.isArray(doneRes.d);
     infosOk = infoRes.ok && Array.isArray(infoRes.d);
+    // Nur eine wirklich fehlende Tabelle rechtfertigt die Einrichtungs-Anleitung
+    infosMissing = !infosOk && /nicht gefunden|not found/i.test(infoRes.err || "");
+    infosError = infosOk ? "" : (infoRes.err || "Unbekannter Fehler");
     infos = (infosOk ? infoRes.d : []).filter(function(r){ return r && r.id; }).map(function(r){
       return { id:r.id, title:r.title||"", rows:r.rows||"", body:r.body||"",
                tags:String(r.tags||"").split(",").map(function(s){ return s.trim(); }).filter(Boolean),
@@ -1129,6 +1156,13 @@
   }
 
   function renderInfos(){
+    if (!infosOk && !infosMissing){
+      $("main").innerHTML = '<div class="isetup"><b>Infos konnten nicht geladen werden.</b><br><br>'
+        + esc(infosError || "Die letzte Aktualisierung ist fehlgeschlagen.")
+        + '<br><br>Der Tab ist im Sheet vorhanden — vermutlich eine kurze Störung. '
+        + 'Oben rechts auf „Aktualisieren“ tippen.</div>';
+      return;
+    }
     if (!infosOk){
       $("main").innerHTML = '<div class="isetup">Der Tab <b>Infos</b> fehlt im Google Sheet.<br><br>'
         + 'Lege dort einmalig ein Tabellenblatt <code>Infos</code> an, mit diesen Spalten in Zeile 1:<br><br>'
