@@ -528,6 +528,8 @@
       return "Google verlangt eine Anmeldung (HTTP " + res.status + ")";
     if (/too many|quota|Dienst.*zu oft/i.test(t))
       return "Google drosselt gerade — gleich nochmal versuchen";
+    if (/Bad Request/i.test(t))
+      return "Anfrage zu lang fuer Google — Inhalt kuerzen";
     if (/^\s*<!DOCTYPE|^\s*<html/i.test(t))
       return "Fehlerseite statt Daten (HTTP " + res.status + ") — meist voruebergehend";
     return "Unerwartete Antwort (HTTP " + res.status + ")";
@@ -542,10 +544,13 @@
       usp.set(k, (typeof v === "object") ? JSON.stringify(v) : String(v));
     });
     var url = WEBAPP_URL + "?" + usp.toString();
-    if (url.length > 7500) throw new Error("Inhalt zu lang fuer eine Anfrage (" + url.length + " Zeichen)");
-    var readOnly = !p.action, tries = readOnly ? 2 : 1, lastErr = null;
+    // Gemessene Grenze: ab etwa 6000 Zeichen antwortet Google mit "Bad Request"
+    if (url.length > 5800) throw new Error("Inhalt zu lang (" + url.length + " von hoechstens 5800 Zeichen)");
+    // Lesen, Aendern und Loeschen sind wiederholbar — Anhaengen nicht, das gaebe Dubletten
+    var wiederholbar = !p.action || p.action === "update" || p.action === "delete";
+    var tries = wiederholbar ? 3 : 1, lastErr = null;
     for (var i = 0; i < tries; i++){
-      if (i) await new Promise(function(r){ setTimeout(r, 700); });
+      if (i) await new Promise(function(r){ setTimeout(r, i * 800); });
       try {
         var res = await fetch(url, { method:"GET", redirect:"follow" });
         var text = await res.text(), data;
@@ -555,6 +560,9 @@
         return data;
       } catch(e){ lastErr = e; }
     }
+    // Beim Anhaengen ist unklar, ob die Zeile doch geschrieben wurde
+    if (p.action === "append" && lastErr)
+      lastErr = new Error((lastErr.message||"") + " — vor einem neuen Versuch aktualisieren");
     throw lastErr;
   }
   function readTab(tab){ return apiCall({ tab:tab }); }
