@@ -552,7 +552,12 @@
     for (var i = 0; i < tries; i++){
       if (i) await new Promise(function(r){ setTimeout(r, i * 800); });
       try {
-        var res = await fetch(url, { method:"GET", redirect:"follow" });
+        // Ohne Zeitlimit haengt ein stiller Aussetzer die App auf Dauer auf
+        var ctl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+        var frist = ctl ? setTimeout(function(){ ctl.abort(); }, 20000) : null;
+        var res;
+        try { res = await fetch(url, { method:"GET", redirect:"follow", signal: ctl && ctl.signal }); }
+        finally { if (frist) clearTimeout(frist); }
         var text = await res.text(), data;
         try { data = JSON.parse(text); }
         catch(_){ throw new Error(describeNonJson(res, text)); }
@@ -929,7 +934,7 @@
   /* =====================================================================
      Zustand
      ===================================================================== */
-  var tickets = [], recurring = [], doneTabOk = false;
+  var tickets = [], recurring = [], doneTabOk = false, lastLoadOk = 0;
   var view = "today", boardStatus = "Backlog";
   var query = "", filterTags = [], loaded = false;
   var editing = null;       // Ticket in der Detailansicht (null = neu)
@@ -943,54 +948,112 @@
   var $ = function(id){ return document.getElementById(id); };
 
   /* =====================================================================
-     Laden
+     Zwischenspeicher — damit beim Start sofort der letzte Stand dasteht,
+     auch wenn Google gerade lahmt oder das Netz fehlt
      ===================================================================== */
-  async function loadAll(){
-    var res = await Promise.all([
-      readTab(TAB_TICKETS),
-      readTab(TAB_COMMENTS),
-      readTab(TAB_DONE).then(function(d){ return {ok:true,d:d}; }).catch(function(){ return {ok:false,d:[]}; }),
-      readTab(TAB_RECURRING).catch(function(){ return []; }),
-      readTab(TAB_INFOS).then(function(d){ return {ok:true,d:d}; })
-        .catch(function(e){ return {ok:false, d:[], err:(e && e.message) || String(e)}; })
-    ]);
-    var rawT = res[0], rawC = res[1], doneRes = res[2], rawR = res[3], infoRes = res[4];
-    doneTabOk = doneRes.ok && Array.isArray(doneRes.d);
-    infosOk = infoRes.ok && Array.isArray(infoRes.d);
-    // Nur eine wirklich fehlende Tabelle rechtfertigt die Einrichtungs-Anleitung
-    infosMissing = !infosOk && /nicht gefunden|not found/i.test(infoRes.err || "");
-    infosError = infosOk ? "" : (infoRes.err || "Unbekannter Fehler");
-    infos = (infosOk ? infoRes.d : []).filter(function(r){ return r && r.id; }).map(function(r){
-      return { id:r.id, title:r.title||"", rows:r.rows||"", body:r.body||"",
-               tags:String(r.tags||"").split(",").map(function(s){ return s.trim(); }).filter(Boolean),
-               pinned:String(r.pinned||"").toUpperCase()==="TRUE", updatedAt:normTs(r.updatedAt) };
-    });
+  var CACHE_KEY = "board-cache-v1";
+  var cacheTs = 0;
+  function cacheSave(){
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        ts:Date.now(), tickets:tickets, recurring:recurring, infos:infos, infosOk:infosOk
+      }));
+      cacheTs = Date.now();
+    } catch(e){}
+  }
+  // Nach Änderungen mitschreiben, aber gebündelt statt bei jedem Zeichnen
+  var cacheTimer = null;
+  function cacheSaveLater(){
+    clearTimeout(cacheTimer);
+    cacheTimer = setTimeout(function(){ if (loaded) cacheSave(); }, 1500);
+  }
+  function cacheLoad(){
+    try {
+      var c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+      if (!c || !Array.isArray(c.tickets)) return false;
+      tickets = c.tickets; recurring = c.recurring || []; infos = c.infos || [];
+      infosOk = !!c.infosOk; cacheTs = c.ts || 0;
+      return true;
+    } catch(e){ return false; }
+  }
 
-    var byTicket = {};
-    (rawC||[]).forEach(function(c){
-      (byTicket[c.ticket_id] = byTicket[c.ticket_id] || []).push(
-        { comment_id:c.comment_id, text:c.text, ts:normTs(c.timestamp) });
-    });
-    Object.keys(byTicket).forEach(function(k){ byTicket[k].sort(function(a,b){ return b.ts - a.ts; }); });
-
-    tickets = (rawT||[]).map(function(r){
+  /* =====================================================================
+     Laden — nacheinander statt parallel: Apps Script arbeitet Aufrufe
+     eines Nutzers ohnehin der Reihe nach ab, gleichzeitige Anfragen
+     bremsen sich nur gegenseitig. Nach jedem Schritt wird gezeichnet,
+     die Tickets stehen also schon nach der ersten Antwort.
+     ===================================================================== */
+  function mapTickets(rawT, byTicket){
+    return (rawT||[]).map(function(r){
       return { id:r.id, title:r.title||"", dueDate:normDate(r.dueDate),
                status:STATUSES.indexOf(r.status)>=0 ? r.status : STATUSES[0],
                priority:r.priority||"", description:r.description||"",
                tags:(r.tags||"").split(",").map(function(s){ return s.trim(); }).filter(Boolean),
                comments:byTicket[r.id]||[], series_id:r.series_id||"" };
     });
-
-    recurring = (Array.isArray(rawR)?rawR:[]).filter(function(x){ return x.series_id; }).map(function(x){
-      return { series_id:x.series_id, title:x.title||"", description:x.description||"", tags:x.tags||"",
-               priority:x.priority||"", status:STATUSES.indexOf(x.status)>=0 ? x.status : "Backlog",
-               freq:x.freq||"weekly", interval:parseInt(x.interval)||1, weekdays:x.weekdays||"",
-               dayOfMonth:x.dayOfMonth||"", startDate:normDate(x.startDate), endDate:normDate(x.endDate),
-               nextDate:normDate(x.nextDate), active:String(x.active).toUpperCase()!=="FALSE" };
+  }
+  function commentsById(rawC){
+    var by = {};
+    (rawC||[]).forEach(function(c){
+      (by[c.ticket_id] = by[c.ticket_id] || []).push(
+        { comment_id:c.comment_id, text:c.text, ts:normTs(c.timestamp) });
     });
+    Object.keys(by).forEach(function(k){ by[k].sort(function(a,b){ return b.ts - a.ts; }); });
+    return by;
+  }
+  async function loadAll(){
+    // 1. Tickets — danach ist die App bedienbar
+    var altKommentare = {};
+    tickets.forEach(function(t){ if ((t.comments||[]).length) altKommentare[t.id] = t.comments; });
+    var rawT = await readTab(TAB_TICKETS);
+    tickets = mapTickets(rawT, altKommentare);      // Kommentare vorerst aus dem alten Stand
+    loaded = true; render();
 
-    await ensureRecurring();
-    loaded = true;
+    // 2. Kommentare
+    try { tickets = mapTickets(rawT, commentsById(await readTab(TAB_COMMENTS))); render(); }
+    catch(e){}
+
+    // 3. Serien
+    try {
+      var rawR = await readTab(TAB_RECURRING);
+      recurring = (Array.isArray(rawR)?rawR:[]).filter(function(x){ return x.series_id; }).map(function(x){
+        return { series_id:x.series_id, title:x.title||"", description:x.description||"", tags:x.tags||"",
+                 priority:x.priority||"", status:STATUSES.indexOf(x.status)>=0 ? x.status : "Backlog",
+                 freq:x.freq||"weekly", interval:parseInt(x.interval)||1, weekdays:x.weekdays||"",
+                 dayOfMonth:x.dayOfMonth||"", startDate:normDate(x.startDate), endDate:normDate(x.endDate),
+                 nextDate:normDate(x.nextDate), active:String(x.active).toUpperCase()!=="FALSE" };
+      });
+      await ensureRecurring();
+      render();
+    } catch(e){}
+
+    // 4. Infos
+    try {
+      var rawI = await readTab(TAB_INFOS);
+      if (!Array.isArray(rawI)) throw new Error("unerwartete Antwort");
+      infosOk = true; infosMissing = false; infosError = "";
+      infos = rawI.filter(function(r){ return r && r.id; }).map(function(r){
+        return { id:r.id, title:r.title||"", rows:r.rows||"", body:r.body||"",
+                 tags:String(r.tags||"").split(",").map(function(s){ return s.trim(); }).filter(Boolean),
+                 pinned:String(r.pinned||"").toUpperCase()==="TRUE", updatedAt:normTs(r.updatedAt) };
+      });
+      render();
+    } catch(e){
+      infosOk = false;
+      infosMissing = /nicht gefunden|not found/i.test(e.message||"");
+      infosError = e.message || String(e);
+    }
+
+    lastLoadOk = Date.now();
+    cacheSave();
+  }
+
+  /* Der Done-Tab wird nur gebraucht, wenn wirklich archiviert wird —
+     ihn beim Start mitzuladen kostet eine ganze Anfrage umsonst. */
+  async function ensureDoneTab(){
+    if (doneTabOk) return true;
+    try { doneTabOk = Array.isArray(await readTab(TAB_DONE)); } catch(e){ doneTabOk = false; }
+    return doneTabOk;
   }
 
   var reloading = false;
@@ -998,11 +1061,11 @@
     if (reloading) return;
     reloading = true;
     $("bReload").style.opacity = ".4";
-    if (!silent) $("main").innerHTML = '<div class="loading"><div class="spin"></div>Lädt…</div>';
+    if (!silent && !loaded) $("main").innerHTML = '<div class="loading"><div class="spin"></div>Lädt…</div>';
     try { await loadAll(); render(); }
     catch(e){
       if (!loaded) $("main").innerHTML = '<div class="empty">Laden fehlgeschlagen.<br>'+esc(e.message||String(e))+'</div>';
-      else snack("Laden fehlgeschlagen", null, true);
+      else snack("Nicht aktualisiert — angezeigt wird der letzte Stand", null, true);
     }
     finally { reloading = false; $("bReload").style.opacity = ""; }
   }
@@ -1385,6 +1448,7 @@
     if (view === "today") renderToday();
     else if (view === "board") renderBoard();
     else renderInfos();
+    cacheSaveLater();
   }
 
   function setView(v){
@@ -1448,7 +1512,7 @@
         render();
         snack("Erledigt · Serie weitergestellt", function(){ undoSeries(t, series, prevNext, created); });
       } else {
-        if (!doneTabOk) throw new Error("Der 'Done'-Tab fehlt im Google Sheet.");
+        if (!(await ensureDoneTab())) throw new Error("Der 'Done'-Tab konnte nicht gelesen werden.");
         logActivity("status", t, prev + " → Done");
         var row = Object.assign({}, ticketToRow(t), { status:"Done", doneAt:Date.now() });
         await appendRow(TAB_DONE, row);
@@ -1899,12 +1963,22 @@
     else saveInfo();
   });
 
-  /* Beim Zurueckkehren zur App die Daten auffrischen */
+  /* Beim Zurueckkehren zur App auffrischen — aber nicht bei jedem kurzen
+     Wechsel, sonst laeuft staendig ein kompletter Ladevorgang. */
   document.addEventListener("visibilitychange", function(){
-    if (!document.hidden && loaded && !editing && !infoMode) reload(true);
+    if (document.hidden || !loaded || editing || infoMode) return;
+    if (Date.now() - lastLoadOk < 90000) return;
+    reload(true);
   });
 
-  reload(false);
+  /* Erst den letzten bekannten Stand zeigen, dann im Hintergrund holen */
+  if (cacheLoad()){
+    loaded = true;
+    render();
+    // Nur melden, wenn der gespeicherte Stand wirklich alt ist
+    if (cacheTs && Date.now() - cacheTs > 1800000) snack("Stand von " + fmtWhen(cacheTs) + " — wird aktualisiert…");
+  }
+  reload(true);
 })();
 </script>
 </body>
