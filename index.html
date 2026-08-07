@@ -674,7 +674,9 @@
         if (e && e.endgueltig){
           // Wiederholen hilft nicht (z. B. zu lang, Tab fehlt) — verwerfen und melden
           queue.shift(); queueSave(); queueAnzeige();
-          snack("Nicht gespeichert: " + ((e && e.message) || e), null, true);
+          var txt = (e && e.message) || String(e);
+          if (/Zeile nicht gefunden/i.test(txt)) txt = "Der Eintrag existiert nicht mehr";
+          snack("Nicht gespeichert: " + txt, null, true);
           continue;
         }
         queueSave();
