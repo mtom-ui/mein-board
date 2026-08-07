@@ -577,8 +577,10 @@
   /* Mehrere Tabellen in einem Aufruf. Der Aufruf kostet rund 2,4s — unabhaengig
      von der Datenmenge. Kann das Skript das noch nicht, wird einmal gemerkt und
      danach wieder einzeln geladen. */
+  // Nur ein "kann es" wird dauerhaft gemerkt. Ein "kann es nicht" gilt nur fuer
+  // diese Sitzung — sonst bliebe die App nach einem Skript-Update ewig langsam.
   var batchModus = null;
-  try { batchModus = JSON.parse(localStorage.getItem("board-batch") || "null"); } catch(e){}
+  try { if (localStorage.getItem("board-batch") === "true") batchModus = true; } catch(e){}
   async function readTabs(namen){
     if (batchModus !== false){
       try {
@@ -591,7 +593,6 @@
         }
       } catch(e){}
       batchModus = false;
-      try { localStorage.setItem("board-batch","false"); } catch(e){}
     }
     var out = {};
     for (var i = 0; i < namen.length; i++){
