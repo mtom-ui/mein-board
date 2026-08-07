@@ -65,6 +65,11 @@
          border-radius:11px; color:var(--muted); flex:0 0 auto; }
   .ico:active { background:var(--chip); }
   .ico.on { color:var(--on-accent); background:var(--accent); }
+  /* Zaehler fuer noch nicht weggeschriebene Aenderungen */
+  #qBadge { display:none; flex:0 0 auto; min-width:19px; height:19px; padding:0 5px; border-radius:10px;
+            background:var(--accent); color:var(--on-accent); font-size:11px; font-weight:800;
+            align-items:center; justify-content:center; margin-right:2px; }
+  #qBadge.on { display:inline-flex; }
   .searchbar { padding:0 14px 10px; }
   .searchbar input {
     width:100%; padding:11px 14px; border:1px solid var(--line); border-radius:12px;
@@ -311,6 +316,7 @@
     <button class="ico" id="bTheme" aria-label="Aussehen">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a9 9 0 1 0 0 18c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.5-1.1-.3-.3-.4-.7-.4-1 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="11" cy="7.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/></svg>
     </button>
+    <span id="qBadge" aria-label="Ungespeicherte Änderungen"></span>
     <button class="ico" id="bReload" aria-label="Aktualisieren">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-.6 4"/><path d="M20 4v7h-7"/></svg>
     </button>
@@ -546,9 +552,10 @@
     var url = WEBAPP_URL + "?" + usp.toString();
     // Gemessene Grenze: ab etwa 6000 Zeichen antwortet Google mit "Bad Request"
     if (url.length > 5800) throw new Error("Inhalt zu lang (" + url.length + " von hoechstens 5800 Zeichen)");
-    // Lesen, Aendern und Loeschen sind wiederholbar — Anhaengen nicht, das gaebe Dubletten
-    var wiederholbar = !p.action || p.action === "update" || p.action === "delete";
-    var tries = wiederholbar ? 3 : 1, lastErr = null;
+    // Nur Lesen wird hier wiederholt. Schreibende Aufrufe laufen ueber die
+    // Warteschlange, die sich selbst um Wiederholungen kuemmert — sonst
+    // wuerde doppelt gewartet und der Zaehler stimmte nicht.
+    var tries = p.action ? 1 : 3, lastErr = null;
     for (var i = 0; i < tries; i++){
       if (i) await new Promise(function(r){ setTimeout(r, i * 800); });
       try {
@@ -568,9 +575,10 @@
         return data;
       } catch(e){ lastErr = e; if (e && e.endgueltig) break; }
     }
-    // Beim Anhaengen ist unklar, ob die Zeile doch geschrieben wurde
-    if (p.action === "append" && lastErr)
-      lastErr = new Error((lastErr.message||"") + " — vor einem neuen Versuch aktualisieren");
+    // Frueher stand hier ein Hinweis "vor einem neuen Versuch aktualisieren".
+    // Den braucht es nicht mehr: die Warteschlange wiederholt selbst und prueft
+    // vor einem zweiten Anlauf, ob die Zeile schon angekommen ist. Ausserdem
+    // ging beim Umverpacken die Markierung "endgueltig" verloren.
     throw lastErr;
   }
   function readTab(tab){ return apiCall({ tab:tab }); }
@@ -601,9 +609,89 @@
     }
     return out;
   }
-  function appendRow(tab,row){ return apiCall({ action:"append", tab:tab, row:row }); }
-  function updateRow(tab,idField,idValue,row){ return apiCall({ action:"update", tab:tab, idField:idField, idValue:idValue, row:row }); }
-  function deleteRows(tab,idField,idValue){ return apiCall({ action:"delete", tab:tab, idField:idField, idValue:idValue }); }
+  /* =====================================================================
+     Schreib-Warteschlange
+     ---------------------------------------------------------------------
+     Schreibende Aufrufe warten nicht mehr auf Google. Sie werden in eine
+     Warteschlange gelegt, die Oberflaeche zeigt die Aenderung sofort, und
+     im Hintergrund wird der Reihe nach weggeschrieben. Die Reihenfolge
+     bleibt dabei streng erhalten — sonst koennte eine Aenderung ein
+     Loeschen ueberholen.
+
+     Die Warteschlange liegt im localStorage: was beim Schliessen der App
+     noch aussteht, wird beim naechsten Start nachgeholt.
+     ===================================================================== */
+  var QUEUE_KEY = "board-queue-v1";
+  var queue = [];
+  try { queue = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]") || []; } catch(e){ queue = []; }
+  var queueLaeuft = false;
+
+  function queueSave(){ try { localStorage.setItem(QUEUE_KEY, JSON.stringify(queue)); } catch(e){} }
+  function queueAnzeige(){
+    var el = document.getElementById("qBadge");
+    if (!el) return;
+    el.textContent = queue.length || "";
+    el.classList.toggle("on", queue.length > 0);
+  }
+  function idFeld_(tab){
+    return tab === TAB_COMMENTS  ? "comment_id"
+         : tab === TAB_RECURRING ? "series_id"
+         : tab === TAB_ACTIVITY  ? "activity_id" : "id";
+  }
+  /* Vor einem zweiten Anlauf beim Anhaengen pruefen, ob die Zeile schon
+     drin ist — sonst entstehen bei verlorener Antwort Dubletten. */
+  async function zeileSchonDa_(job){
+    try {
+      var f = idFeld_(job.tab), wert = job.row && job.row[f];
+      if (!wert) return false;
+      var rows = await readTab(job.tab);
+      return Array.isArray(rows) && rows.some(function(r){ return String(r[f]) === String(wert); });
+    } catch(e){ return false; }
+  }
+  function enqueue(job){
+    job.versuche = 0;
+    queue.push(job); queueSave(); queueAnzeige();
+    queueRun();
+    return Promise.resolve({ ok:true, wartet:true });
+  }
+  async function queueRun(){
+    if (queueLaeuft || !queue.length) return;
+    queueLaeuft = true;
+    while (queue.length){
+      var job = queue[0];
+      try {
+        if (job.action === "append" && job.versuche > 0 && await zeileSchonDa_(job)){
+          // war schon angekommen — nicht noch einmal anhaengen
+        } else {
+          var params = { action:job.action, tab:job.tab };
+          if (job.row) params.row = job.row;
+          if (job.idField) { params.idField = job.idField; params.idValue = job.idValue; }
+          await apiCall(params);
+        }
+        queue.shift(); queueSave(); queueAnzeige();
+      } catch(e){
+        job.versuche++;
+        if (e && e.endgueltig){
+          // Wiederholen hilft nicht (z. B. zu lang, Tab fehlt) — verwerfen und melden
+          queue.shift(); queueSave(); queueAnzeige();
+          snack("Nicht gespeichert: " + ((e && e.message) || e), null, true);
+          continue;
+        }
+        queueSave();
+        // Sperre bleibt gesetzt, bis die Wiederholung laeuft — sonst startet
+        // ein neuer Schreibvorgang in der Zwischenzeit einen zweiten Lauf.
+        setTimeout(function(){ queueLaeuft = false; queueRun(); },
+                   Math.min(30000, 2000 * job.versuche));
+        return;
+      }
+    }
+    queueLaeuft = false;
+    queueAnzeige();
+  }
+
+  function appendRow(tab,row){ return enqueue({ action:"append", tab:tab, row:row }); }
+  function updateRow(tab,idField,idValue,row){ return enqueue({ action:"update", tab:tab, idField:idField, idValue:idValue, row:row }); }
+  function deleteRows(tab,idField,idValue){ return enqueue({ action:"delete", tab:tab, idField:idField, idValue:idValue }); }
 
   /* =====================================================================
      Hilfsfunktionen — wortgleich aus dem Desktop-Board uebernommen,
@@ -1087,6 +1175,9 @@
   var reloading = false;
   async function reload(silent){
     if (reloading) return;
+    // Solange Aenderungen ausstehen, nicht neu laden — sonst ueberschreibt
+    // der Serverstand das, was noch unterwegs ist.
+    if (queue.length){ if (!silent) snack("Änderungen werden noch gespeichert…"); queueRun(); return; }
     reloading = true;
     $("bReload").style.opacity = ".4";
     if (!silent && !loaded) $("main").innerHTML = '<div class="loading"><div class="spin"></div>Lädt…</div>';
@@ -1998,6 +2089,10 @@
     if (Date.now() - lastLoadOk < 90000) return;
     reload(true);
   });
+
+  /* Beim Start zuerst nachholen, was beim letzten Mal nicht mehr rausging */
+  queueAnzeige();
+  queueRun();
 
   /* Erst den letzten bekannten Stand zeigen, dann im Hintergrund holen */
   if (cacheLoad()){
