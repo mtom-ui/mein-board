@@ -561,9 +561,12 @@
         var text = await res.text(), data;
         try { data = JSON.parse(text); }
         catch(_){ throw new Error(describeNonJson(res, text)); }
-        if (data && data.error) throw new Error(data.error);
+        if (data && data.error){
+          // Saubere Antwort mit Fehlermeldung: das ist endgueltig, nicht wiederholen
+          var err = new Error(data.error); err.endgueltig = true; throw err;
+        }
         return data;
-      } catch(e){ lastErr = e; }
+      } catch(e){ lastErr = e; if (e && e.endgueltig) break; }
     }
     // Beim Anhaengen ist unklar, ob die Zeile doch geschrieben wurde
     if (p.action === "append" && lastErr)
@@ -571,6 +574,32 @@
     throw lastErr;
   }
   function readTab(tab){ return apiCall({ tab:tab }); }
+  /* Mehrere Tabellen in einem Aufruf. Der Aufruf kostet rund 2,4s — unabhaengig
+     von der Datenmenge. Kann das Skript das noch nicht, wird einmal gemerkt und
+     danach wieder einzeln geladen. */
+  var batchModus = null;
+  try { batchModus = JSON.parse(localStorage.getItem("board-batch") || "null"); } catch(e){}
+  async function readTabs(namen){
+    if (batchModus !== false){
+      try {
+        var d = await apiCall({ tabs: namen.join(",") });
+        var passt = d && typeof d === "object" && !Array.isArray(d)
+                 && namen.every(function(n){ return Object.prototype.hasOwnProperty.call(d, n); });
+        if (passt){
+          if (batchModus !== true){ batchModus = true; try { localStorage.setItem("board-batch","true"); } catch(e){} }
+          return d;
+        }
+      } catch(e){}
+      batchModus = false;
+      try { localStorage.setItem("board-batch","false"); } catch(e){}
+    }
+    var out = {};
+    for (var i = 0; i < namen.length; i++){
+      try { out[namen[i]] = await readTab(namen[i]); }
+      catch(e){ out[namen[i]] = { error: (e && e.message) || String(e) }; }
+    }
+    return out;
+  }
   function appendRow(tab,row){ return apiCall({ action:"append", tab:tab, row:row }); }
   function updateRow(tab,idField,idValue,row){ return apiCall({ action:"update", tab:tab, idField:idField, idValue:idValue, row:row }); }
   function deleteRows(tab,idField,idValue){ return apiCall({ action:"delete", tab:tab, idField:idField, idValue:idValue }); }
@@ -1002,47 +1031,45 @@
     return by;
   }
   async function loadAll(){
-    // 1. Tickets — danach ist die App bedienbar
-    var altKommentare = {};
-    tickets.forEach(function(t){ if ((t.comments||[]).length) altKommentare[t.id] = t.comments; });
-    var rawT = await readTab(TAB_TICKETS);
-    tickets = mapTickets(rawT, altKommentare);      // Kommentare vorerst aus dem alten Stand
-    loaded = true; render();
+    var d = await readTabs([TAB_TICKETS, TAB_COMMENTS, TAB_RECURRING, TAB_INFOS]);
 
-    // 2. Kommentare
-    try { tickets = mapTickets(rawT, commentsById(await readTab(TAB_COMMENTS))); render(); }
-    catch(e){}
+    // Tickets sind Pflicht — ohne sie ist der Ladevorgang gescheitert
+    var rawT = d[TAB_TICKETS];
+    if (!Array.isArray(rawT)) throw new Error((rawT && rawT.error) || "Tickets konnten nicht geladen werden");
 
-    // 3. Serien
-    try {
-      var rawR = await readTab(TAB_RECURRING);
-      recurring = (Array.isArray(rawR)?rawR:[]).filter(function(x){ return x.series_id; }).map(function(x){
+    // Kommentare: bei einem Ausfall den bisherigen Stand behalten statt zu leeren
+    var byTicket;
+    if (Array.isArray(d[TAB_COMMENTS])) byTicket = commentsById(d[TAB_COMMENTS]);
+    else { byTicket = {}; tickets.forEach(function(t){ if ((t.comments||[]).length) byTicket[t.id] = t.comments; }); }
+    tickets = mapTickets(rawT, byTicket);
+    loaded = true;
+
+    if (Array.isArray(d[TAB_RECURRING])){
+      recurring = d[TAB_RECURRING].filter(function(x){ return x.series_id; }).map(function(x){
         return { series_id:x.series_id, title:x.title||"", description:x.description||"", tags:x.tags||"",
                  priority:x.priority||"", status:STATUSES.indexOf(x.status)>=0 ? x.status : "Backlog",
                  freq:x.freq||"weekly", interval:parseInt(x.interval)||1, weekdays:x.weekdays||"",
                  dayOfMonth:x.dayOfMonth||"", startDate:normDate(x.startDate), endDate:normDate(x.endDate),
                  nextDate:normDate(x.nextDate), active:String(x.active).toUpperCase()!=="FALSE" };
       });
-      await ensureRecurring();
-      render();
-    } catch(e){}
+    }
 
-    // 4. Infos
-    try {
-      var rawI = await readTab(TAB_INFOS);
-      if (!Array.isArray(rawI)) throw new Error("unerwartete Antwort");
+    var rawI = d[TAB_INFOS];
+    if (Array.isArray(rawI)){
       infosOk = true; infosMissing = false; infosError = "";
       infos = rawI.filter(function(r){ return r && r.id; }).map(function(r){
         return { id:r.id, title:r.title||"", rows:r.rows||"", body:r.body||"",
                  tags:String(r.tags||"").split(",").map(function(s){ return s.trim(); }).filter(Boolean),
                  pinned:String(r.pinned||"").toUpperCase()==="TRUE", updatedAt:normTs(r.updatedAt) };
       });
-      render();
-    } catch(e){
+    } else {
       infosOk = false;
-      infosMissing = /nicht gefunden|not found/i.test(e.message||"");
-      infosError = e.message || String(e);
+      infosError = (rawI && rawI.error) || "Infos konnten nicht geladen werden";
+      infosMissing = /nicht gefunden|not found/i.test(infosError);
     }
+
+    render();
+    try { await ensureRecurring(); render(); } catch(e){}
 
     lastLoadOk = Date.now();
     cacheSave();
