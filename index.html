@@ -65,6 +65,18 @@
          border-radius:11px; color:var(--muted); flex:0 0 auto; }
   .ico:active { background:var(--chip); }
   .ico.on { color:var(--on-accent); background:var(--accent); }
+  /* Ziehen zum Aktualisieren */
+  #ptr { position:fixed; left:50%; top:calc(var(--top) + 4px); z-index:40;
+         width:30px; height:30px; margin-left:-15px; border-radius:50%;
+         background:var(--card); box-shadow:var(--shadow);
+         display:flex; align-items:center; justify-content:center;
+         opacity:0; pointer-events:none; transition:opacity .18s, transform .22s cubic-bezier(.25,.8,.3,1); }
+  #ptr .ptr-kreis { width:15px; height:15px; border-radius:50%;
+                    border:2px solid var(--line); border-top-color:var(--accent);
+                    transition:transform .2s; }
+  #ptr.bereit .ptr-kreis { transform:rotate(180deg); border-top-color:var(--accent); }
+  #ptr.laeuft .ptr-kreis { animation:sp .7s linear infinite; }
+
   /* Zaehler fuer noch nicht weggeschriebene Aenderungen */
   #qBadge { display:none; flex:0 0 auto; min-width:19px; height:19px; padding:0 5px; border-radius:10px;
             background:var(--accent); color:var(--on-accent); font-size:11px; font-weight:800;
@@ -107,9 +119,21 @@
   /* Ruhige Liste: kein Gehaeuse je Zeile, Trennung nur durch Haarlinien,
      die am Text ausgerichtet sind. Farbe gibt es nur zweimal — der
      Statuspunkt links und ein rotes Datum, wenn es ueberfaellig ist. */
-  .card { display:flex; align-items:center; gap:11px; padding:10px 0; position:relative; }
-  .card + .card:before { content:""; position:absolute; left:20px; right:0; top:0;
-                         height:1px; background:var(--line); }
+  /* Huelle je Zeile: darunter liegen die beiden Wisch-Flaechen, darueber
+     die Zeile selbst, die beim Wischen zur Seite faehrt. */
+  .swipe { position:relative; overflow:hidden; margin:0 -14px; }
+  .swipe-bg { position:absolute; inset:0; display:flex; align-items:center;
+              padding:0 22px; color:#fff; opacity:0; }
+  .swipe-bg.erledigt { background:#6E9887; justify-content:flex-start; }
+  .swipe-bg.spaeter  { background:var(--accent); justify-content:flex-end; }
+  .swipe + .swipe .card:before { content:""; position:absolute; left:34px; right:14px; top:0;
+                                 height:1px; background:var(--line); }
+  .card { display:flex; align-items:center; gap:11px; padding:10px 14px; position:relative;
+          background:var(--cream); }
+  .card.zieht { transition:none; }
+  .card.federt { transition:transform .22s cubic-bezier(.25,.8,.3,1); }
+  /* Druckgefuehl: die Zeile bekommt beim Beruehren eine ruhige Tonung */
+  .card.gedrueckt { background:var(--chip); }
   .card .dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; margin-left:2px;
                align-self:flex-start; margin-top:7px; }
   .card .body { flex:1; min-width:0; }
@@ -1252,13 +1276,21 @@
               + '<button class="act '+dueClass(t.dueDate)+'" data-act="date">'+esc(fmtDueKurz(t.dueDate))+'</button>'
               + (tags ? trenner + esc(tags) : "")
               + (n ? trenner + n + (n===1 ? " Update" : " Updates") : "");
-    return '<div class="card" data-id="'+t.id+'">'
-      + '<span class="dot" style="background:'+sc+'"></span>'
-      + '<div class="body" data-act="open">'
-      +   '<div class="ttl">'+esc(t.title||"(ohne Titel)")+'</div>'
-      +   '<div class="meta">'+unten+'</div>'
+    return '<div class="swipe" data-id="'+t.id+'">'
+      + '<div class="swipe-bg erledigt">'
+      +   '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>'
       + '</div>'
-      + '<button class="done-btn" data-act="done" aria-label="Erledigt"><span class="circ"></span></button>'
+      + '<div class="swipe-bg spaeter">'
+      +   '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'
+      + '</div>'
+      + '<div class="card" data-id="'+t.id+'">'
+      +   '<span class="dot" style="background:'+sc+'"></span>'
+      +   '<div class="body" data-act="open">'
+      +     '<div class="ttl">'+esc(t.title||"(ohne Titel)")+'</div>'
+      +     '<div class="meta">'+unten+'</div>'
+      +   '</div>'
+      +   '<button class="done-btn" data-act="done" aria-label="Erledigt"><span class="circ"></span></button>'
+      + '</div>'
       + '</div>';
   }
 
@@ -2060,7 +2092,131 @@
   /* =====================================================================
      Verdrahtung
      ===================================================================== */
+  /* =====================================================================
+     Gesten — Druckgefuehl, Wischen, Ziehen zum Aktualisieren
+     ---------------------------------------------------------------------
+     Ein gemeinsamer Griff fuer alle drei: bei der ersten deutlichen
+     Bewegung wird entschieden, worum es geht, und dabei bleibt es bis zum
+     Loslassen. Sonst zappelt die Zeile beim Scrollen.
+     ===================================================================== */
+  (function(){
+    var SCHWELLE = 10;        // ab hier gilt die Richtung als erkannt
+    var AUSLOESER = 78;       // so weit muss gewischt werden
+    var ZIEH_AUS = 68;        // so weit gezogen loest Aktualisieren aus
+
+    var x0=0, y0=0, art=null, zeile=null, karte=null, dx=0, dy=0, druckZeit=null;
+    var ptr = null;           // Anzeige beim Ziehen
+    // Nach einer Geste feuert der Browser noch einen Klick nach — der darf
+    // nicht versehentlich das Ticket oeffnen.
+    window.__gesteBis = 0;
+
+    function ptrEl(){
+      if (!ptr){
+        ptr = document.createElement("div");
+        ptr.id = "ptr";
+        ptr.innerHTML = '<span class="ptr-kreis"></span>';
+        document.body.appendChild(ptr);
+      }
+      return ptr;
+    }
+    function druckLoesen(){
+      clearTimeout(druckZeit);
+      if (karte) karte.classList.remove("gedrueckt");
+    }
+    function zuruecksetzen(){
+      druckLoesen();
+      if (karte){ karte.classList.remove("zieht"); karte.classList.add("federt"); karte.style.transform = ""; }
+      if (zeile){ [].forEach.call(zeile.querySelectorAll(".swipe-bg"), function(b){ b.style.opacity = 0; }); }
+      x0=y0=dx=dy=0; art=null; zeile=null; karte=null;
+    }
+
+    document.addEventListener("touchstart", function(e){
+      if (e.touches.length !== 1) return;
+      if (document.getElementById("detail").classList.contains("on")) return;
+      if ($("sheet").classList.contains("on")) return;
+      var t = e.touches[0];
+      x0 = t.clientX; y0 = t.clientY; dx = dy = 0; art = null;
+      zeile = e.target.closest ? e.target.closest(".swipe") : null;
+      karte = zeile ? zeile.querySelector(".card") : null;
+      if (karte){
+        karte.classList.remove("federt");
+        // Erst nach kurzer Verzoegerung tonen, sonst blitzt es beim Scrollen auf
+        druckZeit = setTimeout(function(){ if (!art) karte.classList.add("gedrueckt"); }, 60);
+      }
+    }, { passive:true });
+
+    document.addEventListener("touchmove", function(e){
+      if (!e.touches.length) return;
+      var t = e.touches[0];
+      dx = t.clientX - x0; dy = t.clientY - y0;
+
+      if (art === null){
+        if (Math.abs(dx) < SCHWELLE && Math.abs(dy) < SCHWELLE) return;
+        if (Math.abs(dx) > Math.abs(dy) * 1.3 && karte){ art = "wischen"; karte.classList.add("zieht"); }
+        else if (dy > 0 && window.scrollY <= 0 && !reloading && !queue.length){ art = "ziehen"; }
+        else art = "scrollen";
+        druckLoesen();
+      }
+
+      if (art === "wischen"){
+        e.preventDefault();
+        var w = Math.sign(dx) * Math.min(Math.abs(dx), AUSLOESER + (Math.abs(dx) - AUSLOESER) * 0.35);
+        if (Math.abs(dx) <= AUSLOESER) w = dx;
+        karte.style.transform = "translateX(" + w + "px)";
+        var bgE = zeile.querySelector(".swipe-bg.erledigt");
+        var bgS = zeile.querySelector(".swipe-bg.spaeter");
+        bgE.style.opacity = dx > 0 ? Math.min(1, dx / AUSLOESER) : 0;
+        bgS.style.opacity = dx < 0 ? Math.min(1, -dx / AUSLOESER) : 0;
+      } else if (art === "ziehen"){
+        e.preventDefault();
+        var z = Math.min(dy * 0.5, ZIEH_AUS + 22);
+        var el = ptrEl();
+        el.style.transform = "translateY(" + z + "px)";
+        el.style.opacity = Math.min(1, z / ZIEH_AUS);
+        el.classList.toggle("bereit", z >= ZIEH_AUS);
+      }
+    }, { passive:false });
+
+    function ende(){
+      if (art === "wischen" || art === "ziehen") window.__gesteBis = Date.now() + 400;
+      if (art === "wischen" && karte){
+        var id = zeile.dataset.id;
+        if (dx >= AUSLOESER){
+          karte.classList.add("federt");
+          karte.style.transform = "translateX(100%)";
+          setTimeout(function(){ completeTicket(id); }, 120);
+          druckLoesen(); x0=y0=dx=dy=0; art=null; zeile=null; karte=null;
+          return;
+        }
+        if (dx <= -AUSLOESER){
+          var t = byId(id);
+          if (t){
+            var vorher = t.dueDate;
+            patchTicket(t, { dueDate: addDays(todayISO(), 1) });
+            snack("Auf morgen verschoben", function(){ patchTicket(t, { dueDate: vorher }); });
+          }
+        }
+      } else if (art === "ziehen"){
+        var el = ptrEl();
+        if (dy * 0.5 >= ZIEH_AUS){
+          el.classList.add("laeuft");
+          Promise.resolve(reload(true)).then(function(){
+            el.style.opacity = 0; el.style.transform = "";
+            el.classList.remove("laeuft","bereit");
+          });
+        } else {
+          el.style.opacity = 0; el.style.transform = "";
+          el.classList.remove("bereit");
+        }
+      }
+      zuruecksetzen();
+    }
+    document.addEventListener("touchend", ende, { passive:true });
+    document.addEventListener("touchcancel", zuruecksetzen, { passive:true });
+  })();
+
   $("main").addEventListener("click", function(e){
+    if (Date.now() < (window.__gesteBis||0)) return;   // Nachklapper einer Geste
     var ic = e.target.closest("[data-info]");
     if (ic){ var n = infoById(ic.dataset.info); if (n) openInfo(n); return; }
     var el = e.target.closest("[data-act]"); if (!el) return;
