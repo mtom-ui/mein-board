@@ -101,20 +101,32 @@
   /* ---------- Inhalt ---------- */
   main { padding:14px 14px calc(96px + var(--bot)); min-height:60vh; }
   .grp { margin-bottom:16px; }
-  .grp h2 { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em;
-            color:var(--muted); margin:0 0 7px; display:flex; align-items:center; gap:6px; }
+  .grp h2 { font-size:12.5px; font-weight:700; color:var(--muted); margin:0 0 2px; }
   .grp.over h2 { color:var(--overdue); }
-  .grp h2 b { background:var(--chip); border-radius:7px; padding:1px 7px; font-size:11px; }
-  .grp.over h2 b { background:rgba(192,68,46,.15); color:var(--overdue); }
 
-  .card { display:flex; background:var(--card); border-radius:13px; margin-bottom:6px;
-          box-shadow:var(--shadow); overflow:hidden; }
-  .card .bar { width:3px; flex:0 0 auto; }
-  .card .body { flex:1; min-width:0; padding:9px 4px 8px 11px; }
-  .card .ttl { font-size:14.5px; font-weight:600; line-height:1.25; word-break:break-word; }
-  .card .meta { display:flex; align-items:center; flex-wrap:wrap; gap:5px; margin-top:6px; }
-  .card .done-btn { flex:0 0 auto; width:46px; display:flex; align-items:center; justify-content:center; }
-  .card .circ { width:23px; height:23px; border-radius:50%; border:2px solid var(--line); }
+  /* Ruhige Liste: kein Gehaeuse je Zeile, Trennung nur durch Haarlinien,
+     die am Text ausgerichtet sind. Farbe gibt es nur zweimal — der
+     Statuspunkt links und ein rotes Datum, wenn es ueberfaellig ist. */
+  .card { display:flex; align-items:center; gap:11px; padding:10px 0; position:relative; }
+  .card + .card:before { content:""; position:absolute; left:20px; right:0; top:0;
+                         height:1px; background:var(--line); }
+  .card .dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; margin-left:2px;
+               align-self:flex-start; margin-top:7px; }
+  .card .body { flex:1; min-width:0; }
+  .card .ttl { font-size:16px; font-weight:500; line-height:1.25; letter-spacing:-.01em;
+               word-break:break-word; }
+  /* Einzeilig halten — lieber abschneiden als den Rhythmus brechen */
+  .card .meta { font-size:13px; color:var(--muted); margin-top:2px; line-height:1.35;
+                white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .card .meta .sep { margin:0 5px; opacity:.6; }
+  /* Status und Datum bleiben antippbar — nur ohne farbige Flaeche. Die
+     Polsterung vergroessert die Tippflaeche, ohne das Layout zu aendern. */
+  .card .meta .act { color:var(--muted); font-size:13px; font-weight:500;
+                     padding:7px 0; margin:-7px 0; }
+  .card .meta .act.over { color:var(--overdue); }
+  .card .meta .act.today { color:var(--accent); }
+  .card .done-btn { flex:0 0 auto; width:34px; display:flex; align-items:center; justify-content:center; }
+  .card .circ { width:22px; height:22px; border-radius:50%; border:1.5px solid var(--line); }
   .card .done-btn:active .circ { background:var(--accent); border-color:var(--accent); }
   .card.going { opacity:0; transform:translateX(50px); transition:opacity .2s, transform .2s; }
 
@@ -742,6 +754,18 @@
     var s = WD_SHORT[d.getDay()] + ", " + String(d.getDate()).padStart(2,"0") + "." + String(d.getMonth()+1).padStart(2,"0") + ".";
     return (diff < -1) ? s + " (" + Math.abs(diff) + " T. über)" : s;
   }
+  /* Kurzform fuer die Liste — dort muss die graue Zeile einzeilig bleiben,
+     sonst zerfaellt der Rhythmus. Das lange Format steht weiter im Detail. */
+  function fmtDueKurz(iso){
+    if (!iso) return "Kein Datum";
+    var d = parseISO(iso); if (!d) return "Kein Datum";
+    var diff = daysBetween(parseISO(todayISO()), d);
+    if (diff === 0) return "Heute";
+    if (diff === 1) return "Morgen";
+    if (diff === -1) return "Gestern";
+    if (diff < -1) return Math.abs(diff) + " Tage über";
+    return WD_SHORT[d.getDay()] + ", " + String(d.getDate()).padStart(2,"0") + "." + String(d.getMonth()+1).padStart(2,"0") + ".";
+  }
   function dueClass(iso){
     if (!iso) return "";
     var diff = daysBetween(parseISO(todayISO()), parseISO(iso));
@@ -1216,18 +1240,23 @@
   /* =====================================================================
      Darstellung
      ===================================================================== */
+  /* Eine Zeile, zwei Textebenen: Titel oben, alles Weitere grau darunter
+     in einem Fluss. Status und Datum sind darin weiterhin antippbar. */
   function cardHtml(t){
-    var col = ticketColor(t), em = ticketEmoji(t), n = (t.comments||[]).length;
     var sc = STATUS_COLORS[t.status] || ACCENT;
+    var n = (t.comments||[]).length;
+    var tags = (t.tags||[]).join(", ");
+    var trenner = '<span class="sep">·</span>';
+    var unten = '<button class="act" data-act="status">'+esc(statusLabel(t.status))+'</button>'
+              + trenner
+              + '<button class="act '+dueClass(t.dueDate)+'" data-act="date">'+esc(fmtDueKurz(t.dueDate))+'</button>'
+              + (tags ? trenner + esc(tags) : "")
+              + (n ? trenner + n + (n===1 ? " Update" : " Updates") : "");
     return '<div class="card" data-id="'+t.id+'">'
-      + '<div class="bar" style="background:'+col+'"></div>'
+      + '<span class="dot" style="background:'+sc+'"></span>'
       + '<div class="body" data-act="open">'
-      +   '<div class="ttl">'+(em ? em+" " : "")+esc(t.title||"(ohne Titel)")+'</div>'
-      +   '<div class="meta">'
-      +     '<button class="pill" data-act="status" style="background:'+sc+';color:'+onColor(sc)+'">'+esc(statusLabel(t.status))+'</button>'
-      +     '<button class="pill dt '+dueClass(t.dueDate)+'" data-act="date">'+esc(fmtDue(t.dueDate))+'</button>'
-      +     (n ? '<span class="pill cm">💬 '+n+'</span>' : '')
-      +   '</div>'
+      +   '<div class="ttl">'+esc(t.title||"(ohne Titel)")+'</div>'
+      +   '<div class="meta">'+unten+'</div>'
       + '</div>'
       + '<button class="done-btn" data-act="done" aria-label="Erledigt"><span class="circ"></span></button>'
       + '</div>';
@@ -1235,7 +1264,7 @@
 
   function groupHtml(title, list, isOver){
     if (!list.length) return "";
-    return '<section class="grp'+(isOver?" over":"")+'"><h2>'+title+' <b>'+list.length+'</b></h2>'
+    return '<section class="grp'+(isOver?" over":"")+'"><h2>'+title+' · '+list.length+'</h2>'
          + list.map(cardHtml).join("") + '</section>';
   }
 
