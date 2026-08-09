@@ -660,12 +660,16 @@
     while (queue.length){
       var job = queue[0];
       try {
-        if (job.action === "append" && job.versuche > 0 && await zeileSchonDa_(job)){
+        // Vor jedem zweiten Anlauf pruefen, ob die Zeile schon drin ist. "abgeschickt"
+        // steht auch dann noch, wenn die App mitten im Schreiben beendet wurde — sonst
+        // liefe der Auftrag beim naechsten Start als vermeintlich neu erneut durch.
+        if (job.action === "append" && (job.versuche > 0 || job.abgeschickt) && await zeileSchonDa_(job)){
           // war schon angekommen — nicht noch einmal anhaengen
         } else {
           var params = { action:job.action, tab:job.tab };
           if (job.row) params.row = job.row;
           if (job.idField) { params.idField = job.idField; params.idValue = job.idValue; }
+          job.abgeschickt = true; queueSave();      // merken, BEVOR es rausgeht
           await apiCall(params);
         }
         queue.shift(); queueSave(); queueAnzeige();
