@@ -2016,6 +2016,12 @@
   async function saveDetail(){
     syncEditors();
     if (!draft.title.trim()){ snack("Bitte einen Titel eingeben", null, true); return; }
+    // Pflichtfelder nur beim Anlegen — bestehende Tickets ohne Tag oder Datum
+    // sollen sich weiterhin bearbeiten lassen, ohne sie erst ergaenzen zu muessen.
+    if (!editing){
+      if (!draft.dueDate){ snack("Bitte ein Datum wählen", null, true); return; }
+      if (!draft.tags.length){ snack("Bitte mindestens einen Tag wählen", null, true); return; }
+    }
     var btn = $("dSave"); btn.disabled = true; btn.textContent = "Sichert…";
     try {
       if (editing){
