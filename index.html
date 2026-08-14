@@ -291,10 +291,6 @@
   .rte code { background:var(--chip); padding:1px 5px; border-radius:4px; font-size:.9em; }
   .rte a { color:var(--accent); }
   .rte div { min-height:3px; }
-  .rte-tb { display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
-  .rte-btn { min-width:41px; height:38px; padding:0 11px; border-radius:10px; background:var(--chip);
-             font-size:15px; display:flex; align-items:center; justify-content:center; line-height:1; }
-  .rte-btn:active { background:var(--accent); color:var(--on-accent); }
 
   .cmt { background:var(--card); border-radius:13px; padding:11px 13px; margin-bottom:8px; box-shadow:var(--shadow); }
   .cmt .when { font-size:11px; color:var(--muted); margin-bottom:4px; }
@@ -993,15 +989,6 @@
   }
   function rteSet(ed, md){ ed.innerHTML = md ? mdToHtml(md) : ""; rtePlaceholder(ed); }
 
-  var RTE_BTNS = [
-    ["bold",                "B",  "font-weight:800"],
-    ["italic",              "I",  "font-style:italic"],
-    ["insertUnorderedList", "•",  "font-size:19px"],
-    ["insertOrderedList",   "1.", ""],
-    ["formatBlock:h3",      "H",  "font-weight:800"],
-    ["outdent",             "⇤",  ""],
-    ["indent",              "⇥",  ""]
-  ];
   function initRTE(ed, opts){
     opts = opts || {};
     ed.classList.add("rte");
@@ -1010,25 +997,7 @@
     if (opts.placeholder) ed.setAttribute("data-placeholder", opts.placeholder);
     try { document.execCommand("defaultParagraphSeparator", false, "div"); } catch(e){}
 
-    var tb = document.createElement("div");
-    tb.className = "rte-tb";
-    tb.innerHTML = RTE_BTNS.map(function(b){
-      return '<button type="button" class="rte-btn" data-cmd="'+b[0]+'" style="'+b[2]+'">'+b[1]+'</button>';
-    }).join("");
-    ed.parentNode.insertBefore(tb, ed);
 
-    // pointerdown statt click: feuert vor dem Fokuswechsel, sonst verliert
-    // das Eingabefeld auf iOS die Auswahl, bevor der Befehl greift
-    tb.addEventListener("pointerdown", function(e){
-      var b = e.target.closest(".rte-btn"); if (!b) return;
-      e.preventDefault();
-      ed.focus(); rteEnsureCaret(ed);
-      var cmd = b.dataset.cmd;
-      if (cmd.indexOf("formatBlock") === 0) rteToggleBlock(ed, cmd.split(":")[1]);
-      else rteExec(cmd);
-      rtePlaceholder(ed);
-      if (opts.onInput) opts.onInput();
-    });
     ed.addEventListener("input", function(){
       rtePlaceholder(ed);
       if (opts.onInput) opts.onInput();
@@ -1037,7 +1006,6 @@
       if (e.key === " "){ try { if (rteSpace(ed)) e.preventDefault(); } catch(err){} }
     });
     rtePlaceholder(ed);
-    return tb;
   }
 
   /* =====================================================================
@@ -1389,8 +1357,7 @@
              + groupHtml("Diese Woche", buckets.week)
              + groupHtml("Später", buckets.later)
              + groupHtml("Ohne Datum", buckets.none);
-    $("main").innerHTML = html || '<div class="empty">'
-      + (query || filterTags.length ? "Nichts gefunden." : "Nichts offen. 🎉") + '</div>';
+    $("main").innerHTML = html || "";
   }
 
   function renderBoard(){
@@ -1403,7 +1370,7 @@
     var list = open.filter(function(t){ return t.status === boardStatus; }).sort(sortByDue);
     $("main").innerHTML = list.length
       ? list.map(cardHtml).join("")
-      : '<div class="empty">Nichts in „'+esc(statusLabel(boardStatus))+'".</div>';
+      : "";
   }
 
   /* Verteilung ueber die gerade sichtbaren Tickets — folgt also Filter und Suche */
@@ -1495,9 +1462,7 @@
       return (a.title||"").localeCompare(b.title||"", "de", { sensitivity:"base" });
     });
     if (!list.length){
-      $("main").innerHTML = '<div class="empty">'
-        + (query || filterTags.length ? "Nichts gefunden." : "Noch keine Infos.<br>Unten rechts auf + tippen.")
-        + '</div>';
+      $("main").innerHTML = "";
       return;
     }
     $("main").innerHTML = list.map(function(n){
@@ -2005,6 +1970,39 @@
     if ($("dCmt"))  draft.comment = htmlToMd($("dCmt"));
   }
 
+  function tagKnopfText(tags){
+    if (!tags || !tags.length) return "Tags wählen";
+    return tags.map(function(tg){ return (TAG_EMOJI[tg] ? TAG_EMOJI[tg]+" " : "") + tg; }).join(" · ");
+  }
+  /* Tags liegen jetzt in einem Blatt wie Status und Faelligkeit — im Ticket
+     nahmen die vier Gruppen mit allen Knoepfen fast einen halben Bildschirm ein,
+     obwohl sie meist nur beim Anlegen gesetzt werden. */
+  function tagSheet(){
+    var html = '<h3>Tags</h3>';
+    TAG_GROUPS.forEach(function(g){
+      html += '<div class="grp-lbl">'+esc(g.name)+'</div><div class="tagrow">'
+        + g.tags.map(function(tg){
+            var on = draft.tags.indexOf(tg) >= 0;
+            return '<button class="tagopt'+(on?" on":"")+'" data-tag="'+esc(tg)+'"'
+                 + (on ? ' style="background:'+g.color+';color:'+onColor(g.color)+'"' : '') + '>'
+                 + (TAG_EMOJI[tg]?TAG_EMOJI[tg]+" ":"") + esc(tg) + '</button>';
+          }).join("") + '</div>';
+    });
+    html += '<button class="wide done" id="tagOk">Fertig</button>';
+    openSheet(html);
+    $("sheet").querySelectorAll("[data-tag]").forEach(function(b){
+      b.addEventListener("click", function(){
+        var tg = b.dataset.tag, i = draft.tags.indexOf(tg), on = i < 0;
+        if (on) draft.tags.push(tg); else draft.tags.splice(i, 1);
+        b.classList.toggle("on", on);
+        b.style.background = on ? tagColor(tg) : "";
+        b.style.color = on ? onColor(tagColor(tg)) : "";
+        var lbl = $("dTagsBtn") && $("dTagsBtn").querySelector(".lbl");
+        if (lbl) lbl.textContent = tagKnopfText(draft.tags);
+      });
+    });
+    $("tagOk").addEventListener("click", closeSheet);
+  }
   function renderDetail(){
     var t = editing, d = draft;
     var sc = STATUS_COLORS[d.status] || ACCENT;
@@ -2014,17 +2012,9 @@
       +   '<button class="pick" id="dStatus"><span class="dot" style="width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:'+sc+'"></span><span class="lbl">'+esc(statusLabel(d.status))+'</span></button>'
       +   '<button class="pick" id="dDate"><span class="lbl">'+esc(fmtDue(d.dueDate))+'</span></button>'
       + '</div>'
-      + '<div class="f-label">Tags</div><div id="dTags">';
-    TAG_GROUPS.forEach(function(g){
-      html += '<div class="grp-lbl">'+esc(g.name)+'</div><div class="tagrow">'
-        + g.tags.map(function(tg){
-            var on = d.tags.indexOf(tg) >= 0;
-            return '<button class="tagopt'+(on?" on":"")+'" data-tag="'+esc(tg)+'"'
-                 + (on ? ' style="background:'+g.color+';color:'+onColor(g.color)+'"' : '') + '>'
-                 + (TAG_EMOJI[tg]?TAG_EMOJI[tg]+" ":"") + esc(tg) + '</button>';
-          }).join("") + '</div>';
-    });
-    html += '</div>';
+      + '<div class="rowbtns" style="margin-top:9px">'
+      +   '<button class="pick" id="dTagsBtn"><span class="lbl">'+tagKnopfText(d.tags)+'</span></button>'
+      + '</div>';
 
     // Unteraufgaben — nur bei bestehenden Tickets, sonst fehlt die ticket_id
     if (t){
@@ -2044,7 +2034,7 @@
                 return '<div class="cmt"><div class="when">'+esc(fmtWhen(c.ts))+'</div>'
                      + '<div class="md">'+mdToHtml(c.text)+'</div></div>';
               }).join("")
-            : '<div style="color:var(--muted);font-size:14px">Noch keine Kommentare.</div>')
+            : "")
         + '</div>'
         + '<div class="cmt-box"><div id="dCmt"></div>'
         + '<button class="wide" id="dCmtSend" disabled>Kommentar senden</button></div>'
@@ -2078,17 +2068,7 @@
       dateSheet(draft.dueDate, function(v){ draft.dueDate = v; renderDetail(); });
     });
 
-    // Tags direkt am Knopf umschalten statt die Ansicht neu aufzubauen —
-    // sonst schliesst sich die Tastatur und die Scrollposition springt.
-    $("dTags").querySelectorAll("[data-tag]").forEach(function(b){
-      b.addEventListener("click", function(){
-        var tg = b.dataset.tag, i = draft.tags.indexOf(tg), on = i < 0;
-        if (on) draft.tags.push(tg); else draft.tags.splice(i,1);
-        b.classList.toggle("on", on);
-        b.style.background = on ? tagColor(tg) : "";
-        b.style.color = on ? onColor(tagColor(tg)) : "";
-      });
-    });
+    $("dTagsBtn").addEventListener("click", function(){ syncEditors(); tagSheet(); });
 
     if ($("dCmt")){
       var cm = $("dCmt");
@@ -2122,7 +2102,7 @@
            + '<span class="sub-titel">' + esc(s.title) + '</span>'
            + '<button class="sub-weg" aria-label="Löschen">✕</button>'
            + '</div>';
-    }).join("") : '<div class="sub-hinweis">Noch keine Unteraufgaben.</div>';
+    }).join("") : "";
 
     box.querySelectorAll(".sub").forEach(function(el){
       var sid = el.dataset.sid;
