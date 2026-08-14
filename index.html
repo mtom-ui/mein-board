@@ -65,6 +65,30 @@
          border-radius:11px; color:var(--muted); flex:0 0 auto; }
   .ico:active { background:var(--chip); }
   .ico.on { color:var(--on-accent); background:var(--accent); }
+  /* Unteraufgaben */
+  .sub { display:flex; align-items:center; gap:11px; padding:11px 2px; position:relative; }
+  .sub + .sub:before { content:""; position:absolute; left:33px; right:0; top:0; height:1px; background:var(--line); }
+  .sub-box { width:22px; height:22px; flex:0 0 auto; border-radius:50%; border:1.5px solid var(--line);
+             display:flex; align-items:center; justify-content:center; font-size:12px; color:transparent; }
+  .sub.fertig .sub-box { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+  .sub.fertig .sub-box:after { content:"✓"; }
+  .sub-titel { flex:1; min-width:0; font-size:16px; word-break:break-word; }
+  .sub.fertig .sub-titel { color:var(--muted); text-decoration:line-through; }
+  .sub-weg { flex:0 0 auto; color:var(--muted); padding:8px 4px; font-size:15px; }
+  .sub-hinweis { font-size:14px; color:var(--muted); padding:8px 2px; }
+  .sub-neu { display:flex; gap:8px; align-items:center; margin-top:8px; }
+  .sub-neu input { flex:1; min-width:0; padding:11px 13px; border-radius:12px; border:1px solid var(--line);
+                   background:var(--card); color:var(--ink); font-family:inherit; font-size:16px; -webkit-appearance:none; }
+  .sub-neu input:focus { outline:none; border-color:var(--accent); }
+  .sub-neu button { flex:0 0 auto; width:42px; height:42px; border-radius:12px; background:var(--chip);
+                    color:var(--ink); font-size:22px; font-weight:600; }
+  .sub-neu button:active { background:var(--accent); color:var(--on-accent); }
+
+  /* Konfetti beim Erledigen */
+  .confetti { position:fixed; width:7px; height:11px; border-radius:2px; z-index:80; pointer-events:none;
+              animation:kf .9s cubic-bezier(.15,.6,.4,1) forwards; }
+  @keyframes kf { to { transform:translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity:0; } }
+
   /* Ziehen zum Aktualisieren */
   #ptr { position:fixed; left:50%; top:calc(var(--top) + 4px); z-index:40;
          width:30px; height:30px; margin-left:-15px; border-radius:50%;
@@ -424,7 +448,9 @@
   var WEBAPP_URL   = "https://script.google.com/macros/s/AKfycbytXkgzfQMlYOtbWLCAUds3nigkz6IehOqm_-K8bUx-_vfqHZQXX4dV6k1u17Wa7WE8Qw/exec";
   var WEBAPP_TOKEN = "";
   var TAB_TICKETS = "Tickets", TAB_COMMENTS = "Comments", TAB_ACTIVITY = "Activity",
-      TAB_RECURRING = "Recurring", TAB_DONE = "Done", TAB_INFOS = "Infos";
+      TAB_RECURRING = "Recurring", TAB_DONE = "Done", TAB_INFOS = "Infos",
+      TAB_SUBTASKS = "Subtasks";
+  var SUB_SCHRITT = 10;
   var LEAD_DAYS = 2;
 
   /* =====================================================================
@@ -807,13 +833,20 @@
      Markdown <-> HTML — beide Richtungen aus dem Desktop-Board,
      damit Beschreibungen zwischen Mac und Handy verlustfrei bleiben
      ===================================================================== */
+  // Nackte URLs im Text erkennen (gleiches Muster wie im Desktop)
+  var URL_MUSTER = /(^|[\s(>])((?:https?:\/\/|www\.)[^\s<)]*[^\s<).,;:!?])/g;
   function mdInline(s){
     return s.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
             .replace(/__([^_]+)__/g,"<u>$1</u>")
             .replace(/\*([^*\n]+)\*/g,"<em>$1</em>")
             .replace(/`([^`]+)`/g,"<code>$1</code>")
             .replace(/~~([^~]+)~~/g,"<del>$1</del>")
-            .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+            .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+            .replace(URL_MUSTER, function(m, vor, url){
+              // Nackte Adressen anklickbar machen; bereits gesetzte Links bleiben unberuehrt
+              return vor + '<a href="' + (/^www\./i.test(url) ? "https://" + url : url)
+                   + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+            });
   }
   function mdToHtml(text){
     var lines = esc(text||"").split(/\r?\n/), html = "", i = 0;
@@ -1112,6 +1145,7 @@
   var editing = null;       // Ticket in der Detailansicht (null = neu)
   var draft = null;         // Arbeitskopie der Detailansicht
   var infos = [], infosOk = false, infosMissing = false, infosError = "";
+  var subtasksOk = false;
   var infoEditing = null;   // Info in der Detailansicht (null = neu)
   var infoDraft = null;
   var infoMode = null;      // null = Ticket-Detail, "read" oder "edit" = Info-Detail
@@ -1155,15 +1189,36 @@
      bremsen sich nur gegenseitig. Nach jedem Schritt wird gezeichnet,
      die Tickets stehen also schon nach der ersten Antwort.
      ===================================================================== */
-  function mapTickets(rawT, byTicket){
+  function mapTickets(rawT, byTicket, bySub){
+    bySub = bySub || {};
     return (rawT||[]).map(function(r){
-      return { id:r.id, title:r.title||"", dueDate:normDate(r.dueDate),
+      return { id:r.id, title:r.title||"", dueDate:normDate(r.dueDate), subtasks:bySub[r.id]||[],
                status:STATUSES.indexOf(r.status)>=0 ? r.status : STATUSES[0],
                priority:r.priority||"", description:r.description||"",
                tags:(r.tags||"").split(",").map(function(s){ return s.trim(); }).filter(Boolean),
                comments:byTicket[r.id]||[], series_id:r.series_id||"" };
     });
   }
+  function subtasksById(rawS){
+    var by = {};
+    (rawS||[]).forEach(function(x){
+      if (!x.subtask_id || !x.ticket_id) return;
+      (by[x.ticket_id] = by[x.ticket_id] || []).push({
+        subtask_id:x.subtask_id, title:x.title||"",
+        done:String(x.done).toUpperCase()==="TRUE", pos:Number(x.pos)||0,
+        doneAt:x.doneAt ? normTs(x.doneAt) : 0 });
+    });
+    Object.keys(by).forEach(function(k){ by[k].sort(function(a,b){ return a.pos - b.pos; }); });
+    return by;
+  }
+  function subListe(t){ return (t && t.subtasks) || []; }
+  function subStats(t){ var l = subListe(t); return { done:l.filter(function(s){ return s.done; }).length, total:l.length }; }
+  function subNaechstePos(l){ return l.length ? Math.max.apply(null, l.map(function(s){ return s.pos; })) + SUB_SCHRITT : SUB_SCHRITT; }
+  function subToRow(s, ticketId){
+    return { subtask_id:s.subtask_id, ticket_id:ticketId, title:s.title||"",
+             done: s.done ? "TRUE" : "FALSE", pos: s.pos, doneAt: s.doneAt||"" };
+  }
+
   function commentsById(rawC){
     var by = {};
     (rawC||[]).forEach(function(c){
@@ -1174,7 +1229,7 @@
     return by;
   }
   async function loadAll(){
-    var d = await readTabs([TAB_TICKETS, TAB_COMMENTS, TAB_RECURRING, TAB_INFOS]);
+    var d = await readTabs([TAB_TICKETS, TAB_COMMENTS, TAB_RECURRING, TAB_INFOS, TAB_SUBTASKS]);
 
     // Tickets sind Pflicht — ohne sie ist der Ladevorgang gescheitert
     var rawT = d[TAB_TICKETS];
@@ -1184,7 +1239,12 @@
     var byTicket;
     if (Array.isArray(d[TAB_COMMENTS])) byTicket = commentsById(d[TAB_COMMENTS]);
     else { byTicket = {}; tickets.forEach(function(t){ if ((t.comments||[]).length) byTicket[t.id] = t.comments; }); }
-    tickets = mapTickets(rawT, byTicket);
+    // Unteraufgaben ebenso — lieber den alten Stand behalten als sie verschwinden lassen
+    var bySub;
+    subtasksOk = Array.isArray(d[TAB_SUBTASKS]);
+    if (subtasksOk) bySub = subtasksById(d[TAB_SUBTASKS]);
+    else { bySub = {}; tickets.forEach(function(t){ if ((t.subtasks||[]).length) bySub[t.id] = t.subtasks; }); }
+    tickets = mapTickets(rawT, byTicket, bySub);
     loaded = true;
 
     if (Array.isArray(d[TAB_RECURRING])){
@@ -1269,12 +1329,14 @@
   function cardHtml(t){
     var sc = STATUS_COLORS[t.status] || ACCENT;
     var n = (t.comments||[]).length;
+    var st = subStats(t);
     var tags = (t.tags||[]).join(", ");
     var trenner = '<span class="sep">·</span>';
     var unten = '<button class="act" data-act="status">'+esc(statusLabel(t.status))+'</button>'
               + trenner
               + '<button class="act '+dueClass(t.dueDate)+'" data-act="date">'+esc(fmtDueKurz(t.dueDate))+'</button>'
               + (tags ? trenner + esc(tags) : "")
+              + (st.total ? trenner + "☑ " + st.done + "/" + st.total : "")
               + (n ? trenner + n + (n===1 ? " Update" : " Updates") : "");
     return '<div class="swipe" data-id="'+t.id+'">'
       + '<div class="swipe-bg erledigt">'
@@ -1676,6 +1738,23 @@
     setTimeout(after, 200);
   }
 
+  var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function confettiBurst(x, y){
+    if (reducedMotion) return;
+    var accent = getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#C46730";
+    var farben = [accent, "#E0A458", "#6E9887", "#C0442E", "#f5c542"];
+    for (var i = 0; i < 22; i++){
+      var p = document.createElement("div"); p.className = "confetti";
+      var ang = Math.random() * Math.PI * 2, dist = 40 + Math.random() * 80;
+      p.style.left = x + "px"; p.style.top = y + "px"; p.style.background = farben[i % farben.length];
+      p.style.setProperty("--dx", (Math.cos(ang) * dist).toFixed(0) + "px");
+      p.style.setProperty("--dy", (Math.sin(ang) * dist - (40 + Math.random() * 40)).toFixed(0) + "px");
+      p.style.setProperty("--rot", (Math.random() * 720 - 360).toFixed(0) + "deg");
+      p.style.animationDelay = (Math.random() * 0.05).toFixed(2) + "s";
+      document.body.appendChild(p);
+      setTimeout(function(el){ return function(){ el.remove(); }; }(p), 1000);
+    }
+  }
   async function completeTicket(id){
     var t = byId(id); if (!t) return;
     var idx = tickets.indexOf(t), prev = t.status;
@@ -1945,7 +2024,18 @@
                  + (TAG_EMOJI[tg]?TAG_EMOJI[tg]+" ":"") + esc(tg) + '</button>';
           }).join("") + '</div>';
     });
-    html += '</div><div class="f-label">Beschreibung</div><div id="dDescWrap"><div id="dDesc"></div></div>';
+    html += '</div>';
+
+    // Unteraufgaben — nur bei bestehenden Tickets, sonst fehlt die ticket_id
+    if (t){
+      var st = subStats(t);
+      html += '<div class="f-label">Unteraufgaben' + (st.total ? ' · ' + st.done + '/' + st.total : '') + '</div>'
+            + '<div id="dSubs"></div>'
+            + '<div class="sub-neu"><input id="dSubNeu" placeholder="Unteraufgabe hinzufügen" autocomplete="off">'
+            + '<button id="dSubAdd" aria-label="Hinzufügen">+</button></div>';
+    }
+
+    html += '<div class="f-label">Beschreibung</div><div id="dDescWrap"><div id="dDesc"></div></div>';
 
     if (t){
       html += '<div class="f-label">Kommentare</div><div id="dComments">'
@@ -1972,6 +2062,8 @@
     autoGrow(ta);
     ta.addEventListener("input", function(){ draft.title = ta.value.replace(/\n/g,""); autoGrow(ta); });
     ta.addEventListener("keydown", function(e){ if (e.key === "Enter") e.preventDefault(); });
+
+    if ($("dSubs")) wireSubs();
 
     var desc = $("dDesc");
     initRTE(desc, { placeholder:"Beschreibung … („- " + "␣" + "\" wird zur Aufzählung)" });
@@ -2011,6 +2103,72 @@
       });
       $("dDel").addEventListener("click", deleteTicket);
     }
+  }
+
+  /* =====================================================================
+     Unteraufgaben — eigene Tabelle im Sheet, gleiche Daten wie im Desktop.
+     Geschrieben wird ueber die Warteschlange, die Anzeige aendert sich sofort.
+     ===================================================================== */
+  function subsZeichnen(){
+    var box = $("dSubs"); if (!box || !editing) return;
+    var liste = subListe(editing);
+    if (!subtasksOk){
+      box.innerHTML = '<div class="sub-hinweis">Der Tab <b>Subtasks</b> fehlt im Google Sheet.</div>';
+      return;
+    }
+    box.innerHTML = liste.length ? liste.map(function(s){
+      return '<div class="sub' + (s.done ? ' fertig' : '') + '" data-sid="' + esc(s.subtask_id) + '">'
+           + '<button class="sub-box" aria-label="Abhaken"></button>'
+           + '<span class="sub-titel">' + esc(s.title) + '</span>'
+           + '<button class="sub-weg" aria-label="Löschen">✕</button>'
+           + '</div>';
+    }).join("") : '<div class="sub-hinweis">Noch keine Unteraufgaben.</div>';
+
+    box.querySelectorAll(".sub").forEach(function(el){
+      var sid = el.dataset.sid;
+      el.querySelector(".sub-box").addEventListener("click", function(){ subUmschalten(sid); });
+      el.querySelector(".sub-weg").addEventListener("click", function(){ subLoeschen(sid); });
+    });
+    // Ueberschrift mit dem Zaehler auffrischen
+    var lbl = box.previousElementSibling;
+    if (lbl && lbl.classList.contains("f-label")){
+      var st = subStats(editing);
+      lbl.textContent = "Unteraufgaben" + (st.total ? " · " + st.done + "/" + st.total : "");
+    }
+  }
+  function subUmschalten(sid){
+    var s = subListe(editing).find(function(x){ return x.subtask_id === sid; }); if (!s) return;
+    s.done = !s.done;
+    s.doneAt = s.done ? Date.now() : "";
+    subsZeichnen(); render();
+    updateRow(TAB_SUBTASKS, "subtask_id", sid, subToRow(s, editing.id));
+  }
+  function subLoeschen(sid){
+    var liste = subListe(editing);
+    var i = liste.findIndex(function(x){ return x.subtask_id === sid; }); if (i < 0) return;
+    liste.splice(i, 1);
+    subsZeichnen(); render();
+    deleteRows(TAB_SUBTASKS, "subtask_id", sid);
+  }
+  function subAnlegen(){
+    var feld = $("dSubNeu"); if (!feld || !editing) return;
+    var titel = feld.value.trim(); if (!titel) return;
+    if (!subtasksOk){ snack("Erst den Tab „Subtasks“ im Sheet anlegen", null, true); return; }
+    var liste = (editing.subtasks = subListe(editing));
+    var s = { subtask_id: uid(), title: titel, done: false, pos: subNaechstePos(liste), doneAt: "" };
+    liste.push(s);
+    feld.value = "";
+    subsZeichnen(); render();
+    appendRow(TAB_SUBTASKS, subToRow(s, editing.id));
+    feld.focus();
+  }
+  function wireSubs(){
+    subsZeichnen();
+    var add = $("dSubAdd"), feld = $("dSubNeu");
+    if (add) add.addEventListener("click", subAnlegen);
+    if (feld) feld.addEventListener("keydown", function(e){
+      if (e.key === "Enter"){ e.preventDefault(); subAnlegen(); }
+    });
   }
 
   async function saveDetail(){
@@ -2188,6 +2346,8 @@
       if (art === "wischen" && karte){
         var id = zeile.dataset.id;
         if (dx >= AUSLOESER){
+          var r = karte.getBoundingClientRect();
+          confettiBurst(r.left + r.width * 0.35, r.top + r.height / 2);
           karte.classList.add("federt");
           karte.style.transform = "translateX(100%)";
           setTimeout(function(){ completeTicket(id); }, 120);
@@ -2231,7 +2391,7 @@
     var act = el.dataset.act;
 
     if (act === "open") openDetail(t);
-    else if (act === "done") completeTicket(t.id);
+    else if (act === "done"){ confettiBurst(e.clientX, e.clientY); completeTicket(t.id); }
     else if (act === "status") statusSheet(t.status, function(s){
       if (s === t.status) return;
       if (s === "Done"){ completeTicket(t.id); return; }
