@@ -65,6 +65,17 @@
          border-radius:11px; color:var(--muted); flex:0 0 auto; }
   .ico:active { background:var(--chip); }
   .ico.on { color:var(--on-accent); background:var(--accent); }
+  /* Code: einzeilig als Auszeichnung, mehrzeilig als Block mit Querlauf */
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.9em;
+         background:var(--chip); border-radius:5px; padding:1px 5px; }
+  pre.code { background:var(--chip); border-radius:11px; padding:11px 13px; margin:8px 0;
+             overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  pre.code code { display:block; background:none; padding:0; border-radius:0;
+                  white-space:pre; font-size:13px; line-height:1.45; }
+  pre.code[data-lang]:before { content:attr(data-lang); display:block; font-size:10px;
+                               font-weight:800; text-transform:uppercase; letter-spacing:.06em;
+                               color:var(--muted); margin-bottom:6px; }
+
   /* Unteraufgaben */
   .sub { display:flex; align-items:center; gap:11px; padding:11px 2px; position:relative; }
   .sub + .sub:before { content:""; position:absolute; left:33px; right:0; top:0; height:1px; background:var(--line); }
@@ -869,6 +880,16 @@
     }
     while (i < lines.length){
       var line = lines[i], m;
+      // Code-Zaun zuerst: alles dazwischen bleibt unangetastet
+      if ((m = line.match(/^\s*```\s*([A-Za-z0-9+#._-]*)\s*$/))){
+        var sprache = m[1] || "", inhalt = [];
+        i++;
+        while (i < lines.length && !/^\s*```\s*$/.test(lines[i])){ inhalt.push(lines[i]); i++; }
+        if (i < lines.length) i++;                       // schliessenden Zaun ueberspringen
+        html += '<pre class="code"' + (sprache ? ' data-lang="' + sprache + '"' : '')
+              + '><code>' + inhalt.join("\n") + '</code></pre>';
+        continue;
+      }
       if ((m = line.match(/^\s*(#{1,3})\s+(.*)$/))){ html += "<h3>" + mdInline(m[2]) + "</h3>"; i++; continue; }
       if (line.match(/^(\s*)([-*]|\d+\.)\s+/)){ parseList(indentW(line.match(/^(\s*)/)[1])); continue; }
       if (line.trim() === ""){ html += "<div><br></div>"; i++; continue; }
@@ -925,6 +946,14 @@
         if (n.nodeType === 3){ var t = n.nodeValue.replace(/\n+/g," "); if (t.trim()) lines.push(t); return; }
         if (n.nodeType !== 1) return;
         var tag = n.nodeName.toLowerCase();
+        // Code-Block: Inhalt woertlich zurueckschreiben, nichts umformatieren
+        if (tag === "pre"){
+          var sprache = n.getAttribute("data-lang") || "";
+          lines.push("```" + sprache);
+          String(n.textContent || "").replace(/\n$/,"").split("\n").forEach(function(z){ lines.push(z); });
+          lines.push("```");
+          return;
+        }
         if (/^h[1-6]$/.test(tag)){ var ht = inline(n).trim(); if (ht) lines.push("# " + ht); }
         else if (tag === "ul") listBlock(n, false, 0);
         else if (tag === "ol") listBlock(n, true, 0);
@@ -1958,6 +1987,9 @@
     $("dSave").textContent = "Sichern";
     renderDetail();
     $("detail").classList.add("on");
+    // Die Titelhoehe erst messen, wenn der Dialog im Bild ist — ausserhalb
+    // liefert scrollHeight einen zu grossen Wert und reisst eine Luecke auf.
+    requestAnimationFrame(function(){ var ta = $("dTitle"); if (ta) autoGrow(ta); });
     if (!t) setTimeout(function(){ $("dTitle").focus(); }, 320);
   }
   function closeDetail(){ $("detail").classList.remove("on"); editing = null; draft = null; }
