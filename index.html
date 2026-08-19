@@ -47,7 +47,10 @@
   html, body { overscroll-behavior-y:none; }
   body {
     margin:0; background:var(--cream); color:var(--ink);
-    font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    /* Schriftwahl liegt auf --font. Alles andere steht auf font:inherit,
+       deshalb reicht diese eine Stelle. Nur Schriften, die schon da sind —
+       nichts nachladen, die App soll offline laufen. */
+    font:16px/1.45 var(--font, -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif);
     -webkit-font-smoothing:antialiased;
   }
   button, input, textarea, select { font:inherit; color:inherit; }
@@ -244,6 +247,9 @@
   .seg { display:flex; gap:5px; background:var(--chip); border-radius:13px; padding:4px; margin-bottom:18px; }
   .seg button { flex:1; padding:11px 6px; border-radius:10px; font-size:14.5px; font-weight:700; color:var(--muted); }
   .seg button.on { background:var(--accent); color:var(--on-accent); }
+  /* Fuenf Schriften statt drei Modi: auf einem schmalen Bildschirm wuerden die
+     Namen sonst umbrechen oder abgeschnitten. Kleiner setzen und knapper polstern. */
+  .seg.schriftwahl button { font-size:12.5px; padding:11px 2px; font-weight:600; }
   .presets { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
   .pcard { border:2px solid var(--line); border-radius:15px; padding:12px; text-align:left; }
   .pcard.on { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
@@ -561,8 +567,21 @@
       g.tags.forEach(function(tg){ TAG_COLOR[tg] = g.color; });
     });
   }
+  var SCHRIFTEN = [
+    { id:"system",  name:"System",  stack:'-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif' },
+    { id:"serif",   name:"Serif",   stack:'"New York","Iowan Old Style",Georgia,"Times New Roman",serif' },
+    { id:"rund",    name:"Rund",    stack:'"Avenir Next",Avenir,"Nunito Sans","Segoe UI",system-ui,sans-serif' },
+    { id:"schmal",  name:"Schmal",  stack:'"Helvetica Neue",Helvetica,"Arial Narrow",Arial,sans-serif' },
+    { id:"technik", name:"Technik", stack:'ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace' }
+  ];
+  var schriftId = "system";
+  function applySchrift(){
+    var f = null, i;
+    for (i = 0; i < SCHRIFTEN.length; i++) if (SCHRIFTEN[i].id === schriftId) f = SCHRIFTEN[i];
+    document.body.style.setProperty("--font", (f || SCHRIFTEN[0]).stack);
+  }
   function saveTheme(){
-    try { localStorage.setItem("board-theme-mobile", JSON.stringify({ idx:themeIdx, mode:themeMode })); } catch(e){}
+    try { localStorage.setItem("board-theme-mobile", JSON.stringify({ idx:themeIdx, mode:themeMode, font:schriftId })); } catch(e){}
   }
   function loadTheme(){
     try {
@@ -571,9 +590,12 @@
         themeIdx = Math.min(Math.max(0, v.idx), PRESETS.length-1);
         if (["auto","light","dark"].indexOf(v.mode) >= 0) themeMode = v.mode;
       }
+      if (v && v.font){
+        for (var i = 0; i < SCHRIFTEN.length; i++) if (SCHRIFTEN[i].id === v.font) schriftId = v.font;
+      }
     } catch(e){}
   }
-  loadTheme(); applyTheme();
+  loadTheme(); applyTheme(); applySchrift();
   mqDark.addEventListener("change", function(){
     if (themeMode === "auto"){ applyTheme(); render(); }
   });
@@ -2039,7 +2061,15 @@
       + modes.map(function(m){
           return '<button data-mode="'+m[0]+'"'+(themeMode===m[0]?' class="on"':'')+'>'+m[1]+'</button>';
         }).join("")
-      + '</div><div class="presets">'
+      + '</div>'
+      + '<div class="seg schriftwahl">'
+      + SCHRIFTEN.map(function(f){
+          // Jeder Knopf in seiner eigenen Schrift — sonst raet man beim Auswaehlen
+          return '<button data-font="'+f.id+'"'+(schriftId===f.id?' class="on"':'')
+               + ' style="font-family:'+f.stack+'">'+f.name+'</button>';
+        }).join("")
+      + '</div>'
+      + '<div class="presets">'
       + PRESETS.map(function(p,i){
           var b = DARK ? p.dark : p.light;
           return '<button class="pcard'+(i===themeIdx?" on":"")+'" data-idx="'+i+'" '
@@ -2054,6 +2084,11 @@
     $("sheet").querySelectorAll("[data-mode]").forEach(function(b){
       b.addEventListener("click", function(){
         themeMode = b.dataset.mode; applyTheme(); saveTheme(); render(); themeSheet();
+      });
+    });
+    $("sheet").querySelectorAll("[data-font]").forEach(function(b){
+      b.addEventListener("click", function(){
+        schriftId = b.dataset.font; applySchrift(); saveTheme(); themeSheet();
       });
     });
     $("sheet").querySelectorAll("[data-idx]").forEach(function(b){
