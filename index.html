@@ -455,7 +455,7 @@
   var TAG_EMOJI = { SLS:"🤝", FIN:"💰", MKT:"📣", OPS:"⚙️", SF:"☁️", BIZDEV:"🚀", PROD:"📦",
                     ANDERE:"🔖", EHE:"💍", SOLO:"🧘", GEBURTSTAGE:"🎂", ARBEIT:"🔁" };
 
-  var WEBAPP_URL   = "https://script.google.com/macros/s/AKfycbytXkgzfQMlYOtbWLCAUds3nigkz6IehOqm_-K8bUx-_vfqHZQXX4dV6k1u17Wa7WE8Qw/exec";
+  var WEBAPP_URL   = "https://script.google.com/macros/s/AKfycbwzQMXbj1tUfHIx-cv78fGrT9IvkV5JfrqY-wFfS8eEWOd7Nz-SqTjnIENP8heI8IClCQ/exec";
   var WEBAPP_TOKEN = "";
   var TAB_TICKETS = "Tickets", TAB_COMMENTS = "Comments", TAB_ACTIVITY = "Activity",
       TAB_RECURRING = "Recurring", TAB_DONE = "Done", TAB_INFOS = "Infos",
@@ -748,8 +748,13 @@
     if (job.grp) o.grp = job.grp;
     return o;
   }
+  // Nur auf Zeit merken: sonst bliebe die App nach einer spaeteren Bereitstellung
+  // fuer immer bei Einzelaufrufen, ohne erkennbaren Grund.
   var buendelGeht = true;
-  try { buendelGeht = localStorage.getItem("board-batchwrite") !== "false"; } catch(e){}
+  try {
+    var ausSeit = Number(localStorage.getItem("board-batchwrite-aus") || 0);
+    buendelGeht = !ausSeit || (Date.now() - ausSeit > 6*60*60*1000);
+  } catch(e){}
   /* Mehrere Auftraege in EINEM Aufruf. Die Dublettensicherung bleibt bestehen:
      jeder Auftrag traegt weiter "abgeschickt", und beim Wiederholen prueft
      zeileSchonDa_, ob die Zeile inzwischen doch angekommen ist. */
@@ -768,7 +773,7 @@
       if (e && e.endgueltig && /unknown action/i.test(txt)){
         // Das Skript kennt "batch" noch nicht — ab jetzt einzeln, einmal merken
         buendelGeht = false;
-        try { localStorage.setItem("board-batchwrite","false"); } catch(_){}
+        try { localStorage.setItem("board-batchwrite-aus", String(Date.now())); } catch(_){}
         return false;
       }
       throw e;                       // alles andere behandelt queueRun wie bisher
