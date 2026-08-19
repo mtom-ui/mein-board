@@ -651,7 +651,8 @@ var SPRITES = {"SLS":{"n":"Archer","if":6,"i":"data:image/png;base64,iVBORw0KGgo
       return "Fehlerseite statt Daten (HTTP " + res.status + ") — meist voruebergehend";
     return "Unerwartete Antwort (HTTP " + res.status + ")";
   }
-  async function apiCall(params){
+  async function apiCall(params, opt){
+    opt = opt || {};
     var p = Object.assign({}, params);
     if (WEBAPP_TOKEN) p.token = WEBAPP_TOKEN;
     var usp = new URLSearchParams();
@@ -666,13 +667,17 @@ var SPRITES = {"SLS":{"n":"Archer","if":6,"i":"data:image/png;base64,iVBORw0KGgo
     // Nur Lesen wird hier wiederholt. Schreibende Aufrufe laufen ueber die
     // Warteschlange, die sich selbst um Wiederholungen kuemmert — sonst
     // wuerde doppelt gewartet und der Zaehler stimmte nicht.
-    var tries = p.action ? 1 : 3, lastErr = null;
+    var tries = opt.einmal ? 1 : (p.action ? 1 : 2), lastErr = null;
     for (var i = 0; i < tries; i++){
       if (i) await new Promise(function(r){ setTimeout(r, i * 800); });
       try {
-        // Ohne Zeitlimit haengt ein stiller Aussetzer die App auf Dauer auf
+        // Ohne Zeitlimit haengt ein stiller Aussetzer die App auf Dauer auf.
+        // Lesen darf kurz abbrechen — die Karten stehen ja schon aus dem Zwischenspeicher
+        // auf dem Schirm. Schreiben braucht dagegen viel Luft: an traegen Tagen dauert
+        // ein Anhaengen im Sheet ueber 30 Sekunden, und ein Abbruch verloere die Aenderung.
+        var zeitlimit = p.action ? 90000 : 20000;
         var ctl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-        var frist = ctl ? setTimeout(function(){ ctl.abort(); }, 20000) : null;
+        var frist = ctl ? setTimeout(function(){ ctl.abort(); }, zeitlimit) : null;
         var res;
         try { res = await fetch(url, { method:"GET", redirect:"follow", signal: ctl && ctl.signal }); }
         finally { if (frist) clearTimeout(frist); }
@@ -684,7 +689,12 @@ var SPRITES = {"SLS":{"n":"Archer","if":6,"i":"data:image/png;base64,iVBORw0KGgo
           var err = new Error(data.error); err.endgueltig = true; throw err;
         }
         return data;
-      } catch(e){ lastErr = e; if (e && e.endgueltig) break; }
+      } catch(e){
+        // "signal is aborted without reason" sagt niemandem etwas — Klartext
+        if (e && (e.name === "AbortError" || /aborted/i.test(e.message || "")))
+          e = new Error("Zeitueberschreitung — Google hat 20 Sekunden nicht geantwortet.");
+        lastErr = e; if (e && e.endgueltig) break;
+      }
     }
     // Frueher stand hier ein Hinweis "vor einem neuen Versuch aktualisieren".
     // Den braucht es nicht mehr: die Warteschlange wiederholt selbst und prueft
@@ -703,7 +713,7 @@ var SPRITES = {"SLS":{"n":"Archer","if":6,"i":"data:image/png;base64,iVBORw0KGgo
   async function readTabs(namen){
     if (batchModus !== false){
       try {
-        var d = await apiCall({ tabs: namen.join(",") });
+        var d = await apiCall({ tabs: namen.join(",") }, { einmal: true });
         var passt = d && typeof d === "object" && !Array.isArray(d)
                  && namen.every(function(n){ return Object.prototype.hasOwnProperty.call(d, n); });
         if (passt){
