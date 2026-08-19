@@ -730,16 +730,83 @@
       return Array.isArray(rows) && rows.some(function(r){ return String(r[f]) === String(wert); });
     } catch(e){ return false; }
   }
+  var queueTimer = null;
   function enqueue(job){
     job.versuche = 0;
     queue.push(job); queueSave(); queueAnzeige();
-    queueRun();
+    // Kurz warten, damit die Auftraege EINER Aktion zusammenkommen und in einen
+    // Aufruf passen. Gemessen: das Skript braucht 1-3s, die Umleitung davor aber
+    // 5-50s — und die faellt pro Aufruf an, nicht pro Zeile.
+    clearTimeout(queueTimer);
+    queueTimer = setTimeout(queueRun, 60);
     return Promise.resolve({ ok:true, wartet:true });
   }
+  function jobZuOp(job){
+    var o = { action: job.action, tab: job.tab };
+    if (job.row) o.row = job.row;
+    if (job.idField){ o.idField = job.idField; o.idValue = job.idValue; }
+    if (job.grp) o.grp = job.grp;
+    return o;
+  }
+  var buendelGeht = true;
+  try { buendelGeht = localStorage.getItem("board-batchwrite") !== "false"; } catch(e){}
+  /* Mehrere Auftraege in EINEM Aufruf. Die Dublettensicherung bleibt bestehen:
+     jeder Auftrag traegt weiter "abgeschickt", und beim Wiederholen prueft
+     zeileSchonDa_, ob die Zeile inzwischen doch angekommen ist. */
+  async function buendelVersuch(){
+    var gruppe = queue.slice(0, 25), zeichen = 0, i;
+    for (i = 0; i < gruppe.length; i++){
+      zeichen += JSON.stringify(jobZuOp(gruppe[i])).length;
+      if (i && zeichen > 60000){ gruppe = gruppe.slice(0, i); break; }
+    }
+    if (gruppe.length < 2) return false;
+    gruppe.forEach(function(j){ j.abgeschickt = true; }); queueSave();
+    var d;
+    try { d = await apiCall({ action:"batch", ops: gruppe.map(jobZuOp) }); }
+    catch(e){
+      var txt = (e && e.message) || String(e);
+      if (e && e.endgueltig && /unknown action/i.test(txt)){
+        // Das Skript kennt "batch" noch nicht — ab jetzt einzeln, einmal merken
+        buendelGeht = false;
+        try { localStorage.setItem("board-batchwrite","false"); } catch(_){}
+        return false;
+      }
+      throw e;                       // alles andere behandelt queueRun wie bisher
+    }
+    if (!d || !Array.isArray(d.results) || d.results.length !== gruppe.length)
+      throw new Error("Das Bündel kam unvollständig zurück");
+    var stehengeblieben = null;
+    for (i = 0; i < gruppe.length; i++){
+      var r = d.results[i] || {};
+      if (r.ok){ continue; }
+      stehengeblieben = r.error || "Übersprungen, weil ein zusammengehöriger Schritt fehlschlug";
+      break;                          // ab hier nichts abraeumen, Reihenfolge muss stehen
+    }
+    var fertig = (stehengeblieben === null) ? gruppe.length : i;
+    queue.splice(0, fertig); queueSave(); queueAnzeige();
+    if (stehengeblieben !== null){
+      var j = queue[0];
+      if (j) j.versuche = (j.versuche || 0) + 1;
+      queue.shift(); queueSave(); queueAnzeige();
+      var m = /Zeile nicht gefunden/i.test(stehengeblieben) ? "Der Eintrag existiert nicht mehr" : stehengeblieben;
+      snack("Nicht gespeichert: " + m, null, true);
+    }
+    return true;
+  }
+
   async function queueRun(){
     if (queueLaeuft || !queue.length) return;
     queueLaeuft = true;
     while (queue.length){
+      if (buendelGeht){
+        try { if (await buendelVersuch()) continue; }
+        catch(e){
+          queue[0].versuche = (queue[0].versuche || 0) + 1; queueSave();
+          setTimeout(function(){ queueLaeuft = false; queueRun(); },
+                     Math.min(30000, 2000 * queue[0].versuche));
+          return;
+        }
+      }
       var job = queue[0];
       try {
         // Vor jedem zweiten Anlauf pruefen, ob die Zeile schon drin ist. "abgeschickt"
@@ -777,9 +844,13 @@
     queueAnzeige();
   }
 
-  function appendRow(tab,row){ return enqueue({ action:"append", tab:tab, row:row }); }
-  function updateRow(tab,idField,idValue,row){ return enqueue({ action:"update", tab:tab, idField:idField, idValue:idValue, row:row }); }
-  function deleteRows(tab,idField,idValue){ return enqueue({ action:"delete", tab:tab, idField:idField, idValue:idValue }); }
+  /* grp (optional): Vorgaenge, die zusammen gelingen oder zusammen ausbleiben
+     muessen. Beim Erledigen sind das "nach Done anhaengen" und "aus Tickets
+     loeschen" — liefe das Loeschen trotz misslungenem Anhaengen, waere das
+     Ticket nirgends mehr. Das ist schlimmer als eine Dublette. */
+  function appendRow(tab,row,grp){ return enqueue({ action:"append", tab:tab, row:row, grp:grp }); }
+  function updateRow(tab,idField,idValue,row,grp){ return enqueue({ action:"update", tab:tab, idField:idField, idValue:idValue, row:row, grp:grp }); }
+  function deleteRows(tab,idField,idValue,grp){ return enqueue({ action:"delete", tab:tab, idField:idField, idValue:idValue, grp:grp }); }
 
   /* =====================================================================
      Hilfsfunktionen — wortgleich aus dem Desktop-Board uebernommen,
@@ -1787,8 +1858,9 @@
         if (!(await ensureDoneTab())) throw new Error("Der 'Done'-Tab konnte nicht gelesen werden.");
         logActivity("status", t, prev + " → Done");
         var row = Object.assign({}, ticketToRow(t), { status:"Done", doneAt:Date.now() });
-        await appendRow(TAB_DONE, row);
-        await deleteRows(TAB_TICKETS, "id", t.id);
+        var g = "erl" + t.id;
+        await appendRow(TAB_DONE, row, g);
+        await deleteRows(TAB_TICKETS, "id", t.id, g);
         snack("Erledigt", function(){ undoArchive(t); });
       }
     } catch(e){
@@ -1800,8 +1872,9 @@
 
   async function undoArchive(t){
     try {
-      await appendRow(TAB_TICKETS, ticketToRow(t));
-      await deleteRows(TAB_DONE, "id", t.id);
+      var g = "wdh" + t.id;
+      await appendRow(TAB_TICKETS, ticketToRow(t), g);
+      await deleteRows(TAB_DONE, "id", t.id, g);
       tickets.push(t); render();
       snack("Wiederhergestellt");
     } catch(e){ snack("Rückgängig fehlgeschlagen", null, true); }
