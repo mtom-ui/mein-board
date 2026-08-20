@@ -151,8 +151,20 @@
   /* ---------- Inhalt ---------- */
   main { padding:14px 14px calc(96px + var(--bot)); min-height:60vh; }
   .grp { margin-bottom:16px; }
-  .grp h2 { font-size:12.5px; font-weight:700; color:var(--muted); margin:0 0 2px; }
+  /* Gruppenkopf wie in der Desktop-Liste: eine echte Ueberschrift statt eines
+     kleinen grauen Labels, mit Anzahl und zum Zuklappen. Volle Zeilenbreite,
+     damit die Tippflaeche gross genug ist. */
+  .grp h2 { display:flex; align-items:center; gap:8px; width:100%; text-align:left;
+            font-size:19px; font-weight:700; letter-spacing:-.01em; color:var(--ink);
+            margin:0; padding:9px 14px 7px; background:none; border:none; }
+  .grp h2 .pf { color:var(--muted); font-size:11px; width:11px; flex:0 0 11px;
+                transition:transform .15s ease; }
+  .grp h2.zu .pf { transform:rotate(-90deg); }
+  .grp h2 b { font-size:13px; font-weight:600; color:var(--muted); }
+  .grp h2 .wt { font-size:13px; font-weight:500; color:var(--muted); }
   .grp.over h2 { color:var(--overdue); }
+  .grp.heute h2 { color:var(--accent); }
+  @media (prefers-reduced-motion: reduce){ .grp h2 .pf { transition:none; } }
 
   /* Ruhige Liste: kein Gehaeuse je Zeile, Trennung nur durch Haarlinien,
      die am Text ausgerichtet sind. Farbe gibt es nur zweimal — der
@@ -187,6 +199,15 @@
                      padding:7px 0; margin:-7px 0; }
   .card .meta .act.over { color:var(--overdue); }
   .card .meta .act.today { color:var(--accent); }
+  /* Tag als farbiges Kuerzel statt grauem Text — dieselbe Zuordnung wie am Desktop */
+  .card .meta .tg { font-weight:700; font-size:12.5px; }
+  /* Blockiert gehoert an den Titel, nicht in die Aufzaehlung: es betrifft rund ein
+     Fuenftel der Tickets und soll auffallen, ohne eine eigene Spalte zu bekommen. */
+  .card .ttl-zeile { display:flex; align-items:center; gap:7px; min-width:0; }
+  .card .ttl-zeile .ttl { min-width:0; }
+  .card .blk { flex:0 0 auto; font-size:10px; font-weight:800; letter-spacing:.02em;
+               border-radius:5px; padding:4px 7px; margin:-2px 0; background:rgba(192,68,46,.14);
+               color:var(--overdue); border:none; }
   .card .done-btn { flex:0 0 auto; width:34px; display:flex; align-items:center; justify-content:center; }
   .card .circ { width:22px; height:22px; border-radius:50%; border:1.5px solid var(--line); }
   .card .done-btn:active .circ { background:var(--accent); border-color:var(--accent); }
@@ -1438,12 +1459,18 @@
     var sc = STATUS_COLORS[t.status] || ACCENT;
     var n = (t.comments||[]).length;
     var st = subStats(t);
-    var tags = (t.tags||[]).join(", ");
+    // Tag farbig statt grau: dieselbe Farbzuordnung wie am Desktop, damit die
+    // Gruppe (MYO / PRIVAT / Wiederkehrend) ohne Lesen erkennbar ist.
+    var tagHtml = (t.tags||[]).map(function(tg){
+      return '<span class="tg" style="color:'+tagColor(tg)+'">'+esc(tg)+'</span>';
+    }).join('<span class="sep">·</span>');
     var trenner = '<span class="sep">·</span>';
-    var unten = '<button class="act" data-act="status">'+esc(statusLabel(t.status))+'</button>'
-              + trenner
+    // Ist das Ticket blockiert, steht das schon als Marke am Titel — dann hier
+    // nicht noch einmal. Die Marke ist selbst der Knopf zum Status-Aendern.
+    var blockiert = t.status === "Blocked";
+    var unten = (blockiert ? "" : '<button class="act" data-act="status">'+esc(statusLabel(t.status))+'</button>' + trenner)
               + '<button class="act '+dueClass(t.dueDate)+'" data-act="date">'+esc(fmtDueKurz(t.dueDate))+'</button>'
-              + (tags ? trenner + esc(tags) : "")
+              + (tagHtml ? trenner + tagHtml : "")
               + (st.total ? trenner + "☑ " + st.done + "/" + st.total : "")
               + (n ? trenner + n + (n===1 ? " Update" : " Updates") : "");
     return '<div class="swipe" data-id="'+t.id+'">'
@@ -1456,7 +1483,8 @@
       + '<div class="card" data-id="'+t.id+'">'
       +   '<span class="dot" style="background:'+sc+'"></span>'
       +   '<div class="body" data-act="open">'
-      +     '<div class="ttl">'+esc(t.title||"(ohne Titel)")+'</div>'
+      +     '<div class="ttl-zeile"><div class="ttl">'+esc(t.title||"(ohne Titel)")+'</div>'
+      +       (t.status==="Blocked" ? '<button class="blk" data-act="status">blockiert</button>' : "") + '</div>'
       +     '<div class="meta">'+unten+'</div>'
       +   '</div>'
       +   '<button class="done-btn" data-act="done" aria-label="Erledigt"><span class="circ"></span></button>'
@@ -1464,10 +1492,20 @@
       + '</div>';
   }
 
-  function groupHtml(title, list, isOver){
+  /* Zugeklappte Gruppen werden gemerkt. Bei "Später" mit oft einem Dutzend
+     Eintraegen ist das der eigentliche Gewinn auf dem kleinen Schirm. */
+  var grpZu = {};
+  try { grpZu = JSON.parse(localStorage.getItem("board-gruppen-zu-mobil") || "{}") || {}; } catch(e){ grpZu = {}; }
+  function grpSchluessel(title){ return title.replace(/[^A-Za-zÄÖÜäöüß]/g,"").toLowerCase(); }
+
+  function groupHtml(title, list, isOver, zusatz, istHeute){
     if (!list.length) return "";
-    return '<section class="grp'+(isOver?" over":"")+'"><h2>'+title+' · '+list.length+'</h2>'
-         + list.map(cardHtml).join("") + '</section>';
+    var k = grpSchluessel(title), zu = !!grpZu[k];
+    return '<section class="grp'+(isOver?" over":"")+(istHeute?" heute":"")+'">'
+         + '<h2 class="'+(zu?"zu":"")+'" data-grp="'+k+'"><span class="pf">▾</span>'+esc(title)
+         + (zusatz ? '<span class="wt">'+esc(zusatz)+'</span>' : "")
+         + '<b>'+list.length+'</b></h2>'
+         + (zu ? "" : list.map(cardHtml).join("")) + '</section>';
   }
 
   function sortByDue(a,b){
@@ -1491,8 +1529,12 @@
     });
     Object.keys(buckets).forEach(function(k){ buckets[k].sort(sortByDue); });
 
+    var wtLang = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+    var hd = parseISO(today);
+    var heuteZusatz = wtLang[hd.getDay()] + ", "
+                    + String(hd.getDate()).padStart(2,"0") + "." + String(hd.getMonth()+1).padStart(2,"0") + ".";
     var html = groupHtml("Überfällig", buckets.over, true)
-             + groupHtml("Heute", buckets.today)
+             + groupHtml("Heute", buckets.today, false, heuteZusatz, true)
              + groupHtml("Morgen", buckets.tomorrow)
              + groupHtml("Diese Woche", buckets.week)
              + groupHtml("Später", buckets.later)
@@ -2521,6 +2563,13 @@
 
   $("main").addEventListener("click", function(e){
     if (Date.now() < (window.__gesteBis||0)) return;   // Nachklapper einer Geste
+    var gk = e.target.closest("[data-grp]");
+    if (gk){
+      grpZu[gk.dataset.grp] = !grpZu[gk.dataset.grp];
+      try { localStorage.setItem("board-gruppen-zu-mobil", JSON.stringify(grpZu)); } catch(_){}
+      render();
+      return;
+    }
     var ic = e.target.closest("[data-info]");
     if (ic){ var n = infoById(ic.dataset.info); if (n) openInfo(n); return; }
     var el = e.target.closest("[data-act]"); if (!el) return;
