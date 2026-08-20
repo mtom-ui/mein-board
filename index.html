@@ -511,7 +511,16 @@
   function luminance(hex){ var c=hx(hex).map(function(v){ return v/255; });
     return 0.299*c[0] + 0.587*c[1] + 0.114*c[2]; }
   /* Lesbare Schriftfarbe auf einer beliebigen Hintergrundfarbe */
-  function onColor(hex){ return luminance(hex) > 0.6 ? "#17181a" : "#ffffff"; }
+  /* Nicht raten, sondern nachrechnen. luminance() ist die WAHRGENOMMENE
+     Helligkeit und taugt nicht zum Kontrastrechnen — auf mittelkraeftigen
+     Akzenten stand dadurch dunkler Text auf dunklem Grund. */
+  function relLum(hex){
+    var c = hx(hex).map(function(v){ v/=255; return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); });
+    return 0.2126*c[0] + 0.7152*c[1] + 0.0722*c[2];
+  }
+  function kontrast(a,b){ var l1=relLum(a), l2=relLum(b);
+    return (Math.max(l1,l2)+0.05) / (Math.min(l1,l2)+0.05); }
+  function onColor(hex){ return kontrast("#17181a",hex) >= kontrast("#ffffff",hex) ? "#17181a" : "#ffffff"; }
   function hexToHsl(hex){ var c=hx(hex).map(function(v){return v/255;}); var r=c[0],g=c[1],b=c[2];
     var mx=Math.max(r,g,b),mn=Math.min(r,g,b),h=0,s=0,l=(mx+mn)/2,d=mx-mn;
     if(d){ s = l>0.5 ? d/(2-mx-mn) : d/(mx+mn);
@@ -523,38 +532,31 @@
     else if(h<240){r=0;g=x;b=c;} else if(h<300){r=x;g=0;b=c;} else {r=c;g=0;b=x;}
     return "#"+[r,g,b].map(function(v){ return Math.round((v+m)*255).toString(16).padStart(2,"0"); }).join(""); }
 
-  var PRESET_RAW = [
-    {name:"Midnight Blue", accent:"#4062ff", dark:"#101426"},
-    {name:"Cyber Teal",    accent:"#0fb5ad", dark:"#0f2624"},
-    {name:"Sunburst",      accent:"#ff8f1f", dark:"#231a10"},
-    {name:"Sky Signal",    accent:"#2f9ce0", dark:"#141f2b"},
-    {name:"Ink & Rose",    accent:"#e85c8a", dark:"#161418"},
-    {name:"Electric Lime", accent:"#c2e83a", dark:"#181c14"},
-    {name:"Hot Coral",     accent:"#ff5c49", dark:"#221715"},
-    {name:"Marigold",      accent:"#e2a537", dark:"#2f2a1c"},
-    {name:"Coral",         accent:"#d96b58", dark:"#332420"},
-    {name:"Olive",         accent:"#8a8f4a", dark:"#2a3020"},
-    {name:"Forest",        accent:"#6d8a54", dark:"#1e2b22"},
-    {name:"Cardinal",      accent:"#d81028", dark:"#200b0e"},
-    {name:"Lacquer",       accent:"#c8102e", dark:"#1b0a0c"},
-    {name:"Oxblood",       accent:"#6b1b1b", dark:"#1a0c0c"},
-    {name:"Pure Noir",     accent:"#8f8f8f", dark:"#000000"},
-    {name:"High Key",      accent:"#c9c9c9", dark:"#1a1a1a"},
-    {name:"Caramel",       accent:"#c98d4d", dark:"#513418"},
-    {name:"Fresh Kiwi",    accent:"#4fd15c", dark:"#0f2114"},
-    {name:"Magenta Shot",  accent:"#e0189a", dark:"#20101c"}
-  ];
+  /* Sechs statt vieler. Die alte Sammlung hatte Paletten, deren Akzent auf dem
+     eigenen Grund unter Kontrast 3,0 lag — der Akzent traegt aber Text. Jede
+     dieser sechs ist in hell UND dunkel nachgerechnet:
+       Akzent/Grund >= 4,5 · Text/Grund >= 7 · Text auf Akzent >= 4,5
+     Wortgleich mit der Desktop-Fassung, damit beide gleich aussehen. */
   var PRESETS = [
-    { name:"Warm Sand",  light:{bg:"#FDF2E3", ink:"#253B44", accent:"#C46730"}, dark:{bg:"#191F22", ink:"#E9E4D8", accent:"#D07A40"} },
-    { name:"Cool Slate", light:{bg:"#EEF1F4", ink:"#223039", accent:"#3E7C8C"}, dark:{bg:"#161C21", ink:"#DCE4E8", accent:"#5AA0B0"} },
-    { name:"Sage",       light:{bg:"#EDF0E8", ink:"#26332B", accent:"#B5643C"}, dark:{bg:"#171E1A", ink:"#E1E6DC", accent:"#C97B4E"} },
-    { name:"Stone",      light:{bg:"#F0EDE8", ink:"#2B2A28", accent:"#A97F55"}, dark:{bg:"#1C1B19", ink:"#E7E3DD", accent:"#BC966B"} },
-    { name:"Mauve",      light:{bg:"#F0ECF0", ink:"#2E2A33", accent:"#8A6E8F"}, dark:{bg:"#1C1920", ink:"#E6E1E8", accent:"#A487A9"} }
-  ].concat(PRESET_RAW.map(function(t){
-    return { name:t.name,
-             light:{ bg:mixHex(t.dark,"#ffffff",0.93), ink:t.dark, accent:t.accent },
-             dark: { bg:t.dark, ink:mixHex(t.dark,"#ffffff",0.88), accent:t.accent } };
-  }));
+    { name:"Warm Sand",
+      light:{ bg:"#FDF2E3", ink:"#253B44", accent:"#A94E1B" },
+      dark: { bg:"#191F22", ink:"#E9E4D8", accent:"#E2884A" } },
+    { name:"Cool Slate",
+      light:{ bg:"#EEF2F5", ink:"#1E2A33", accent:"#20607A" },
+      dark: { bg:"#151B21", ink:"#DCE4EA", accent:"#6FB6D4" } },
+    { name:"Sage",
+      light:{ bg:"#EDF1E9", ink:"#22301F", accent:"#9A4A22" },
+      dark: { bg:"#161C15", ink:"#E1E8DC", accent:"#D98A5A" } },
+    { name:"Plum",
+      light:{ bg:"#F3EEF3", ink:"#2A2230", accent:"#7A3D7E" },
+      dark: { bg:"#1A151C", ink:"#E7DFE9", accent:"#C08FC4" } },
+    { name:"Navy",
+      light:{ bg:"#EDF1F7", ink:"#1A2333", accent:"#2C4E88" },
+      dark: { bg:"#12161F", ink:"#DDE3EE", accent:"#8AA9DC" } },
+    { name:"Cardinal",
+      light:{ bg:"#F6EEEE", ink:"#2B1E1E", accent:"#A81E2E" },
+      dark: { bg:"#1B1315", ink:"#EBDEDE", accent:"#E8737F" } }
+  ];
 
   var mqDark = window.matchMedia("(prefers-color-scheme: dark)");
   var themeIdx = 0, themeMode = "auto";   // "auto" | "light" | "dark"
