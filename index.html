@@ -23,6 +23,11 @@
     --chip:rgba(37,59,68,.07); --overdue:#C0442E; --on-accent:#fff;
     --sheet:#fff; --shadow:0 2px 10px rgba(37,59,68,.07);
     --top:env(safe-area-inset-top); --bot:env(safe-area-inset-bottom);
+    /* Aus der Desktop-Sprache uebernommen: eine hellere Zweitfarbe fuer die
+       Versalien-Zeilen, eine zartere Linie und die gemeinsame Beschleunigung. */
+    --muted-hell:#8B959A; --line-zart:rgba(37,59,68,.07);
+    --rahmen:rgba(37,59,68,.22); --feld-radius:9px;
+    --weich:cubic-bezier(.2,.8,.25,1);
     color-scheme: light;
   }
   /* Dunkle Flaechenfarben. Vor dem Start des Skripts entscheidet die
@@ -31,6 +36,7 @@
     html:not(.t-light):not(.t-dark) {
       --cream:#191F22; --ink:#E9E4D8; --accent:#D07A40; --accent-dark:#B86630;
       --muted:#93A0A8; --line:rgba(255,255,255,.12); --card:#222A2E;
+      --line-zart:rgba(255,255,255,.07); --rahmen:rgba(255,255,255,.20);
       --chip:rgba(255,255,255,.08); --overdue:#E5675C;
       --sheet:#232B2F; --shadow:0 2px 10px rgba(0,0,0,.35);
       color-scheme: dark;
@@ -38,6 +44,7 @@
   }
   html.t-dark {
     --muted:#93A0A8; --line:rgba(255,255,255,.12); --card:#222A2E;
+    --line-zart:rgba(255,255,255,.07); --rahmen:rgba(255,255,255,.20);
     --chip:rgba(255,255,255,.08); --overdue:#E5675C;
     --sheet:#232B2F; --shadow:0 2px 10px rgba(0,0,0,.35);
     color-scheme: dark;
@@ -63,7 +70,7 @@
     padding-top:var(--top); border-bottom:1px solid var(--line);
   }
   .hdr-row { display:flex; align-items:center; gap:2px; padding:8px 10px 10px 14px; }
-  .hdr-row h1 { font-size:25px; font-weight:800; letter-spacing:-.03em; margin:0; flex:1; }
+  .hdr-row h1 { font-size:25px; font-weight:400; letter-spacing:-.02em; margin:0; flex:1; }
   .ico { width:38px; height:38px; display:flex; align-items:center; justify-content:center;
          border-radius:11px; color:var(--muted); flex:0 0 auto; }
   .ico:active { background:var(--chip); }
@@ -154,17 +161,16 @@
   /* Gruppenkopf wie in der Desktop-Liste: eine echte Ueberschrift statt eines
      kleinen grauen Labels, mit Anzahl und zum Zuklappen. Volle Zeilenbreite,
      damit die Tippflaeche gross genug ist. */
-  .grp h2 { display:flex; align-items:center; gap:8px; width:100%; text-align:left;
-            font-size:19px; font-weight:700; letter-spacing:-.01em; color:var(--ink);
-            margin:0; padding:9px 14px 7px; background:none; border:none; }
-  .grp h2 .pf { color:var(--muted); font-size:11px; width:11px; flex:0 0 11px;
-                transition:transform .15s ease; }
-  .grp h2.zu .pf { transform:rotate(-90deg); }
-  .grp h2 b { font-size:13px; font-weight:600; color:var(--muted); }
-  .grp h2 .wt { font-size:13px; font-weight:500; color:var(--muted); }
-  .grp.over h2 { color:var(--overdue); }
-  .grp.heute h2 { color:var(--accent); }
-  @media (prefers-reduced-motion: reduce){ .grp h2 .pf { transition:none; } }
+  /* Gruppenkopf in der Desktop-Sprache: 19px in NORMALSTAERKE mit leicht
+     negativer Laufweite, darunter eine Versalien-Zeile mit weiter Sperrung.
+     Kein Fett, keine Flaeche — die Groesse allein traegt die Hierarchie. */
+  .grp h2 { display:block; width:100%; text-align:left; margin:0;
+            font-size:19px; font-weight:400; letter-spacing:-.015em; line-height:1.25;
+            color:var(--ink); padding:26px 16px 10px; background:none; border:none; }
+  .grp h2 small { display:block; font-size:10px; letter-spacing:.14em;
+                  text-transform:uppercase; color:var(--muted); margin-top:7px; }
+  .grp h2.zu small:after { content:" · zu"; }
+  .grp.over h2, .grp.heute h2 { color:var(--accent); }
 
   /* Ruhige Liste: kein Gehaeuse je Zeile, Trennung nur durch Haarlinien,
      die am Text ausgerichtet sind. Farbe gibt es nur zweimal — der
@@ -176,9 +182,9 @@
               padding:0 22px; color:#fff; opacity:0; }
   .swipe-bg.erledigt { background:#6E9887; justify-content:flex-start; }
   .swipe-bg.spaeter  { background:var(--accent); justify-content:flex-end; }
-  .swipe + .swipe .card:before { content:""; position:absolute; left:34px; right:14px; top:0;
-                                 height:1px; background:var(--line); }
-  .card { display:flex; align-items:center; gap:11px; padding:10px 14px; position:relative;
+  .swipe + .swipe .card:before { content:""; position:absolute; left:16px; right:16px; top:0;
+                                 height:1px; background:var(--line-zart); }
+  .card { display:flex; align-items:center; gap:14px; padding:12px 16px; position:relative;
           background:var(--cream); }
   .card.zieht { transition:none; }
   .card.federt { transition:transform .22s cubic-bezier(.25,.8,.3,1); }
@@ -187,29 +193,32 @@
   .card .dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; margin-left:2px;
                align-self:flex-start; margin-top:7px; }
   .card .body { flex:1; min-width:0; }
-  .card .ttl { font-size:16px; font-weight:500; line-height:1.25; letter-spacing:-.01em;
-               word-break:break-word; }
+  .card .ttl { font-size:16px; font-weight:400; line-height:1.35; letter-spacing:-.008em;
+               overflow-wrap:anywhere; hyphens:auto; }
   /* Einzeilig halten — lieber abschneiden als den Rhythmus brechen */
-  .card .meta { font-size:13px; color:var(--muted); margin-top:2px; line-height:1.35;
+  /* Zweitzeile als Versalien mit weiter Sperrung — dieselbe Rolle wie .li-unter
+     am Desktop. Kein Umbruch: lieber abschneiden als den Rhythmus brechen. */
+  .card .meta { font-size:9.5px; letter-spacing:.15em; text-transform:uppercase;
+                color:var(--muted-hell); margin-top:5px; line-height:1.5;
                 white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .card .meta .sep { margin:0 5px; opacity:.6; }
+  .card .meta .sep { margin:0 7px; opacity:.5; }
   /* Status und Datum bleiben antippbar — nur ohne farbige Flaeche. Die
      Polsterung vergroessert die Tippflaeche, ohne das Layout zu aendern. */
-  .card .meta .act { color:var(--muted); font-size:13px; font-weight:500;
-                     padding:7px 0; margin:-7px 0; }
+  .card .meta .act { color:var(--muted-hell); font-size:9.5px; font-weight:400;
+                     letter-spacing:.15em; text-transform:uppercase;
+                     padding:9px 0; margin:-9px 0; }
   .card .meta .act.over { color:var(--overdue); }
   .card .meta .act.today { color:var(--accent); }
-  /* Tag als farbiges Kuerzel statt grauem Text — dieselbe Zuordnung wie am Desktop */
-  .card .meta .tg { font-weight:700; font-size:12.5px; }
+  .card .meta .tg { font-weight:400; }
   /* Blockiert gehoert an den Titel, nicht in die Aufzaehlung: es betrifft rund ein
      Fuenftel der Tickets und soll auffallen, ohne eine eigene Spalte zu bekommen. */
   .card .ttl-zeile { display:flex; align-items:center; gap:7px; min-width:0; }
   .card .ttl-zeile .ttl { min-width:0; }
-  .card .blk { flex:0 0 auto; font-size:10px; font-weight:800; letter-spacing:.02em;
-               border-radius:5px; padding:4px 7px; margin:-2px 0; background:rgba(192,68,46,.14);
-               color:var(--overdue); border:none; }
+  .card .blk { flex:0 0 auto; font-size:9.5px; font-weight:400; letter-spacing:.15em;
+               text-transform:uppercase; color:var(--accent);
+               background:none; border:none; padding:6px 0; margin:-6px 0; }
   .card .done-btn { flex:0 0 auto; width:34px; display:flex; align-items:center; justify-content:center; }
-  .card .circ { width:22px; height:22px; border-radius:50%; border:1.5px solid var(--line); }
+  .card .circ { width:13px; height:13px; border-radius:50%; border:1px solid var(--muted-hell); }
   .card .done-btn:active .circ { background:var(--accent); border-color:var(--accent); }
   .card.going { opacity:0; transform:translateX(50px); transition:opacity .2s, transform .2s; }
 
@@ -229,8 +238,10 @@
   nav { position:fixed; left:0; right:0; bottom:0; z-index:30; display:flex;
         background:var(--cream); border-top:1px solid var(--line); padding-bottom:var(--bot); }
   nav button { flex:1; padding:9px 0 8px; display:flex; flex-direction:column; align-items:center;
-               gap:3px; font-size:10.5px; font-weight:700; color:var(--muted); }
+               gap:5px; font-size:9px; font-weight:400; letter-spacing:.14em;
+               text-transform:uppercase; color:var(--muted); }
   nav button.on { color:var(--accent); }
+
   #fab { position:fixed; right:17px; bottom:calc(74px + var(--bot)); z-index:31;
          width:56px; height:56px; border-radius:50%; background:var(--accent); color:var(--on-accent);
          box-shadow:0 5px 18px rgba(37,59,68,.3); display:flex; align-items:center; justify-content:center; }
@@ -1461,8 +1472,10 @@
     var st = subStats(t);
     // Tag farbig statt grau: dieselbe Farbzuordnung wie am Desktop, damit die
     // Gruppe (MYO / PRIVAT / Wiederkehrend) ohne Lesen erkennbar ist.
+    // Kein Farbwert am Tag: in dieser Sprache traegt Farbe nur "heute" und
+    // "blockiert". Die Zuordnung leistet die Versalie selbst.
     var tagHtml = (t.tags||[]).map(function(tg){
-      return '<span class="tg" style="color:'+tagColor(tg)+'">'+esc(tg)+'</span>';
+      return '<span class="tg">'+esc(tg)+'</span>';
     }).join('<span class="sep">·</span>');
     var trenner = '<span class="sep">·</span>';
     // Ist das Ticket blockiert, steht das schon als Marke am Titel — dann hier
@@ -1481,7 +1494,7 @@
       +   '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'
       + '</div>'
       + '<div class="card" data-id="'+t.id+'">'
-      +   '<span class="dot" style="background:'+sc+'"></span>'
+
       +   '<div class="body" data-act="open">'
       +     '<div class="ttl-zeile"><div class="ttl">'+esc(t.title||"(ohne Titel)")+'</div>'
       +       (t.status==="Blocked" ? '<button class="blk" data-act="status">blockiert</button>' : "") + '</div>'
@@ -1501,10 +1514,10 @@
   function groupHtml(title, list, isOver, zusatz, istHeute){
     if (!list.length) return "";
     var k = grpSchluessel(title), zu = !!grpZu[k];
+    var unter = (zusatz ? zusatz + " · " : "") + list.length;
     return '<section class="grp'+(isOver?" over":"")+(istHeute?" heute":"")+'">'
-         + '<h2 class="'+(zu?"zu":"")+'" data-grp="'+k+'"><span class="pf">▾</span>'+esc(title)
-         + (zusatz ? '<span class="wt">'+esc(zusatz)+'</span>' : "")
-         + '<b>'+list.length+'</b></h2>'
+         + '<h2 class="'+(zu?"zu":"")+'" data-grp="'+k+'">'+esc(title)
+         + '<small>'+esc(unter)+'</small></h2>'
          + (zu ? "" : list.map(cardHtml).join("")) + '</section>';
   }
 
@@ -1533,10 +1546,13 @@
     var hd = parseISO(today);
     var heuteZusatz = wtLang[hd.getDay()] + ", "
                     + String(hd.getDate()).padStart(2,"0") + "." + String(hd.getMonth()+1).padStart(2,"0") + ".";
-    var html = groupHtml("Überfällig", buckets.over, true)
+    function kurz(iso){ var d=parseISO(iso); return d ? String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"." : ""; }
+    var seit = buckets.over.length ? "seit " + kurz(buckets.over[0].dueDate) : "";
+    var bis  = buckets.week.length ? "bis " + kurz(buckets.week[buckets.week.length-1].dueDate) : "";
+    var html = groupHtml("Überfällig", buckets.over, true, seit)
              + groupHtml("Heute", buckets.today, false, heuteZusatz, true)
              + groupHtml("Morgen", buckets.tomorrow)
-             + groupHtml("Diese Woche", buckets.week)
+             + groupHtml("Diese Woche", buckets.week, false, bis)
              + groupHtml("Später", buckets.later)
              + groupHtml("Ohne Datum", buckets.none);
     $("main").innerHTML = html || "";
