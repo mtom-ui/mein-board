@@ -98,11 +98,14 @@
   .sub-weg { flex:0 0 auto; color:var(--muted); padding:8px 4px; font-size:15px; }
   .sub-hinweis { font-size:14px; color:var(--muted); padding:8px 2px; }
   .sub-neu { display:flex; gap:8px; align-items:center; margin-top:8px; }
-  .sub-neu input { flex:1; min-width:0; padding:11px 13px; border-radius:12px; border:1px solid var(--line);
-                   background:var(--card); color:var(--ink); font-family:inherit; font-size:16px; -webkit-appearance:none; }
+  .sub-neu input { flex:1; min-width:0; padding:11px 12px; border-radius:var(--feld-radius);
+                   border:1px solid var(--rahmen);
+                   background:none; color:var(--ink); font-family:inherit; font-size:16px; -webkit-appearance:none; }
+  .sub-neu input::placeholder { color:var(--muted-hell); }
   .sub-neu input:focus { outline:none; border-color:var(--accent); }
-  .sub-neu button { flex:0 0 auto; width:42px; height:42px; border-radius:12px; background:var(--chip);
-                    color:var(--ink); font-size:22px; font-weight:600; }
+  .sub-neu button { flex:0 0 auto; width:42px; height:42px; border-radius:var(--feld-radius);
+                    background:none; border:1px solid var(--rahmen);
+                    color:var(--muted); font-size:20px; font-weight:400; }
   .sub-neu button:active { background:var(--accent); color:var(--on-accent); }
 
   /* Konfetti beim Erledigen */
@@ -296,53 +299,65 @@
   .full.on { transform:none; }
   .full-hdr { display:flex; align-items:center; gap:8px; padding:calc(var(--top) + 8px) 12px 10px;
               border-bottom:1px solid var(--line); flex:0 0 auto; }
-  .full-hdr .t { flex:1; font-size:16px; font-weight:700; text-align:center; }
-  .full-hdr button { padding:8px 10px; font-size:16px; font-weight:600; color:var(--accent);
-                     border-radius:10px; white-space:nowrap; }
+  .full-hdr .t { flex:1; font-size:10px; font-weight:400; letter-spacing:.16em;
+                 text-transform:uppercase; color:var(--muted); text-align:center; }
+  .full-hdr button { padding:8px 10px; font-size:10px; font-weight:400; letter-spacing:.14em;
+                     text-transform:uppercase; color:var(--accent);
+                     border-radius:0; white-space:nowrap; }
   .full-hdr button:disabled { opacity:.4; }
   .full-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
                padding:16px 16px calc(28px + var(--bot)); }
-  .f-label { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
-             color:var(--muted); margin:20px 0 7px; }
+  .f-label { font-size:9.5px; font-weight:400; text-transform:uppercase; letter-spacing:.15em;
+             color:var(--muted-hell); margin:26px 0 9px; }
   .f-label:first-child { margin-top:0; }
   #dTitle {
-    width:100%; border:none; background:none; font-size:22px; font-weight:700;
-    letter-spacing:-.02em; padding:0; resize:none; overflow:hidden; line-height:1.25;
+    width:100%; border:none; background:none; font-size:22px; font-weight:400;
+    letter-spacing:-.02em; padding:0; resize:none; overflow:hidden; line-height:1.3;
   }
   #dTitle:focus { outline:none; }
-  .rowbtns { display:flex; gap:9px; }
-  .rowbtns .pick { flex:1; padding:13px; border-radius:13px; background:var(--card);
-                   box-shadow:var(--shadow); font-size:15px; font-weight:600; text-align:left;
-                   display:flex; align-items:center; gap:8px; min-width:0; }
+  /* Keine gefuellten Kacheln mehr: die Auswahlfelder sind Zeilen, getrennt
+     durch Haarlinien. Getippt wird auf die ganze Zeile, die Flaeche fehlt nur
+     optisch — die Tippflaeche bleibt gleich gross. */
+  .rowbtns { display:flex; flex-direction:column; gap:0; }
+  .rowbtns .pick { padding:13px 0; border-radius:0; background:none;
+                   box-shadow:none; font-size:16px; font-weight:400; text-align:left;
+                   display:flex; align-items:center; gap:10px; min-width:0;
+                   border-bottom:1px solid var(--line-zart); }
+  .rowbtns .pick:last-child { border-bottom:none; }
+  .rowbtns .pick:active { background:var(--chip); }
   .rowbtns .pick span.lbl { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .tagrow { display:flex; flex-wrap:wrap; gap:7px; }
-  .tagopt { font-size:12px; font-weight:800; padding:8px 12px; border-radius:11px;
-            border:2px solid var(--line); color:var(--muted); }
-  .tagopt.on { border-color:transparent; }
-  .grp-lbl { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.05em;
-             color:var(--muted); margin:11px 0 6px; }
+  .tagopt { font-size:10px; font-weight:400; letter-spacing:.12em; text-transform:uppercase;
+            padding:8px 12px; border-radius:var(--feld-radius);
+            border:1px solid var(--rahmen); color:var(--muted); background:none; }
+  .tagopt.on { border-color:var(--accent); color:var(--accent); background:none; }
+  .grp-lbl { font-size:9px; font-weight:400; text-transform:uppercase; letter-spacing:.15em;
+             color:var(--muted-hell); margin:14px 0 7px; }
 
   /* ---------- Formatier-Editor ---------- */
   .rte {
-    min-height:130px; padding:13px; border:1px solid var(--line); border-radius:13px;
-    background:var(--card); font-size:16px; line-height:1.5; outline:none;
+    min-height:130px; padding:12px; border:1px solid var(--rahmen); border-radius:var(--feld-radius);
+    background:none; font-size:16px; line-height:1.5; outline:none;
     word-break:break-word; -webkit-user-select:text; user-select:text;
   }
   .rte:focus { border-color:var(--accent); }
   .rte.sm { min-height:64px; }
-  .rte.is-empty:before { content:attr(data-placeholder); color:var(--muted); pointer-events:none; }
+  .rte.is-empty:before { content:attr(data-placeholder); color:var(--muted-hell); pointer-events:none; }
   .rte ul { list-style:disc outside; margin:5px 0; padding-left:23px; }
   .rte ol { list-style:decimal outside; margin:5px 0; padding-left:26px; }
   .rte ul ul { list-style:circle; } .rte ul ul ul { list-style:square; }
   .rte li { margin:2px 0; }
   .rte li > ul, .rte li > ol { margin:2px 0; }
-  .rte h3, .rte h4, .rte h5 { font-size:17px; font-weight:700; margin:9px 0 3px; }
+  .rte h3, .rte h4, .rte h5 { font-size:17px; font-weight:500; margin:9px 0 3px; }
   .rte code { background:var(--chip); padding:1px 5px; border-radius:4px; font-size:.9em; }
   .rte a { color:var(--accent); }
   .rte div { min-height:3px; }
 
-  .cmt { background:var(--card); border-radius:13px; padding:11px 13px; margin-bottom:8px; box-shadow:var(--shadow); }
-  .cmt .when { font-size:11px; color:var(--muted); margin-bottom:4px; }
+  .cmt { background:none; border-radius:0; padding:12px 0; margin-bottom:0; box-shadow:none;
+         border-bottom:1px solid var(--line-zart); }
+  .cmt:last-of-type { border-bottom:none; }
+  .cmt .when { font-size:9px; font-weight:400; letter-spacing:.15em; text-transform:uppercase;
+               color:var(--muted-hell); margin-bottom:5px; }
   .cmt-box { margin-top:12px; }
 
   /* ---------- Infos ---------- */
@@ -385,11 +400,15 @@
   .md a { color:var(--accent); }
   .md div { min-height:3px; }
 
-  .wide { width:100%; padding:15px; border-radius:13px; font-size:16px; font-weight:600;
-          margin-top:12px; background:var(--card); box-shadow:var(--shadow); }
-  .wide:disabled { opacity:.4; }
-  .wide.done { background:var(--accent); color:var(--on-accent); box-shadow:none; }
-  .wide.del { color:var(--overdue); background:none; box-shadow:none; }
+  /* Knoepfe sind Text, keine Flaechen — wie am Desktop. Der Rahmen bleibt nur
+     dort, wo etwas angetippt werden SOLL und sonst nichts es anzeigt. */
+  .wide { width:100%; padding:13px; border-radius:var(--feld-radius); font-size:10px;
+          font-weight:400; letter-spacing:.14em; text-transform:uppercase;
+          margin-top:14px; background:none; box-shadow:none;
+          border:1px solid var(--rahmen); color:var(--muted); }
+  .wide:disabled { opacity:.35; }
+  .wide.done { background:none; border-color:var(--accent); color:var(--accent); box-shadow:none; }
+  .wide.del { color:var(--overdue); border-color:transparent; background:none; box-shadow:none; }
 
   /* ---------- Rueckmeldeleiste ----------
      Muss im Ruhezustand wirklich verschwinden: sie sitzt 74px ueber dem
@@ -2229,8 +2248,6 @@
       + '<div class="rowbtns">'
       +   '<button class="pick" id="dStatus"><span class="dot" style="width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:'+sc+'"></span><span class="lbl">'+esc(statusLabel(d.status))+'</span></button>'
       +   '<button class="pick" id="dDate"><span class="lbl">'+esc(fmtDue(d.dueDate))+'</span></button>'
-      + '</div>'
-      + '<div class="rowbtns" style="margin-top:9px">'
       +   '<button class="pick" id="dTagsBtn"><span class="lbl">'+tagKnopfText(d.tags)+'</span></button>'
       + '</div>';
 
