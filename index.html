@@ -642,7 +642,13 @@
       dark: { bg:"#12161F", ink:"#DDE3EE", accent:"#8AA9DC" } },
     { name:"Cardinal",
       light:{ bg:"#F6EEEE", ink:"#2B1E1E", accent:"#A81E2E" },
-      dark: { bg:"#1B1315", ink:"#EBDEDE", accent:"#E8737F" } }
+      dark: { bg:"#1B1315", ink:"#EBDEDE", accent:"#E8737F" } },
+    // Gruen als AKZENT — "Sage" hat dagegen einen gruenen GRUND mit
+    // Terrakotta-Akzent. Der Grund ist hier tiefer, sonst saehen die beiden
+    // nebeneinander wie Dubletten aus.
+    { name:"Pine",
+      light:{ bg:"#E4ECE5", ink:"#1C2A22", accent:"#2A6440" },
+      dark: { bg:"#121815", ink:"#DCE8E0", accent:"#7CC49A" } }
   ];
 
   var mqDark = window.matchMedia("(prefers-color-scheme: dark)");
