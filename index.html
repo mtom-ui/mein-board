@@ -98,14 +98,14 @@
   .sub-weg { flex:0 0 auto; color:var(--muted); padding:8px 4px; font-size:15px; }
   .sub-hinweis { font-size:14px; color:var(--muted); padding:8px 2px; }
   .sub-neu { display:flex; gap:8px; align-items:center; margin-top:8px; }
-  .sub-neu input { flex:1; min-width:0; padding:11px 12px; border-radius:var(--feld-radius);
-                   border:1px solid var(--rahmen);
+  .sub-neu input { flex:1; min-width:0; padding:10px 0; border-radius:0;
+                   border:none; border-bottom:1px solid var(--line-zart);
                    background:none; color:var(--ink); font-family:inherit; font-size:16px; -webkit-appearance:none; }
   .sub-neu input::placeholder { color:var(--muted-hell); }
-  .sub-neu input:focus { outline:none; border-color:var(--accent); }
-  .sub-neu button { flex:0 0 auto; width:42px; height:42px; border-radius:var(--feld-radius);
-                    background:none; border:1px solid var(--rahmen);
-                    color:var(--muted); font-size:20px; font-weight:400; }
+  .sub-neu input:focus { outline:none; border-bottom-color:var(--accent); }
+  .sub-neu button { flex:0 0 auto; width:34px; height:34px; border-radius:0;
+                    background:none; border:none;
+                    color:var(--accent); font-size:20px; font-weight:400; }
   .sub-neu button:active { background:var(--accent); color:var(--on-accent); }
 
   /* Konfetti beim Erledigen */
@@ -187,8 +187,10 @@
   .swipe-bg.spaeter  { background:var(--accent); justify-content:flex-end; }
   .swipe + .swipe .card:before { content:""; position:absolute; left:16px; right:16px; top:0;
                                  height:1px; background:var(--line-zart); }
-  .card { display:flex; align-items:center; gap:14px; padding:12px 16px; position:relative;
+  .card { display:flex; align-items:center; gap:12px; padding:12px 16px; position:relative;
           background:var(--cream); }
+  .card .li-frist { flex:0 0 62px; font-size:12px; color:var(--muted-hell);
+                    letter-spacing:.03em; font-variant-numeric:tabular-nums; }
   .card.zieht { transition:none; }
   .card.federt { transition:transform .22s cubic-bezier(.25,.8,.3,1); }
   /* Druckgefuehl: die Zeile bekommt beim Beruehren eine ruhige Tonung */
@@ -201,9 +203,12 @@
   /* Einzeilig halten — lieber abschneiden als den Rhythmus brechen */
   /* Zweitzeile als Versalien mit weiter Sperrung — dieselbe Rolle wie .li-unter
      am Desktop. Kein Umbruch: lieber abschneiden als den Rhythmus brechen. */
-  .card .meta { font-size:9.5px; letter-spacing:.15em; text-transform:uppercase;
+  .card .meta { display:flex; align-items:center; gap:7px;
+                font-size:9.5px; letter-spacing:.15em; text-transform:uppercase;
                 color:var(--muted-hell); margin-top:5px; line-height:1.5;
-                white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                white-space:nowrap; overflow:hidden; }
+  .card .meta .ic { flex:0 0 auto; }
+  .card .meta .tg, .card .meta .li-blk { overflow:hidden; text-overflow:ellipsis; }
   .card .meta .sep { margin:0 7px; opacity:.5; }
   /* Status und Datum bleiben antippbar — nur ohne farbige Flaeche. Die
      Polsterung vergroessert die Tippflaeche, ohne das Layout zu aendern. */
@@ -217,9 +222,8 @@
      Fuenftel der Tickets und soll auffallen, ohne eine eigene Spalte zu bekommen. */
   .card .ttl-zeile { display:flex; align-items:center; gap:7px; min-width:0; }
   .card .ttl-zeile .ttl { min-width:0; }
-  .card .blk { flex:0 0 auto; font-size:9.5px; font-weight:400; letter-spacing:.15em;
-               text-transform:uppercase; color:var(--accent);
-               background:none; border:none; padding:6px 0; margin:-6px 0; }
+  .card .li-blk { flex:0 0 auto; font-size:9.5px; font-weight:400; letter-spacing:.15em;
+                  text-transform:uppercase; color:var(--accent); background:none; }
   .card .done-btn { flex:0 0 auto; width:34px; display:flex; align-items:center; justify-content:center; }
   .card .circ { width:13px; height:13px; border-radius:50%; border:1px solid var(--muted-hell); }
   .card .done-btn:active .circ { background:var(--accent); border-color:var(--accent); }
@@ -244,11 +248,17 @@
                gap:5px; font-size:9px; font-weight:400; letter-spacing:.14em;
                text-transform:uppercase; color:var(--muted); }
   nav button.on { color:var(--accent); }
+  /* Symbole stehen im Fliesstext — dort brauchen sie eine Grundlinie und
+     einen Abstand zum Wort. In Flex-Zeilen macht das der gap, deshalb dort aus. */
+  .ic { display:inline-block; vertical-align:-2px; flex:0 0 auto; margin-right:6px; }
+  .card .meta .ic { margin-right:0; }
+  .nic { width:19px; height:19px; }
+  .nic.gross { width:24px; height:24px; }
+  /* Das Plus in der Mitte traegt keine Beschriftung — es ist die einzige
+     Aktion in der Leiste, die etwas anlegt statt umzuschalten. */
+  #navPlus { color:var(--accent); }
+  #navPlus:active { opacity:.6; }
 
-  #fab { position:fixed; right:17px; bottom:calc(74px + var(--bot)); z-index:31;
-         width:56px; height:56px; border-radius:50%; background:var(--accent); color:var(--on-accent);
-         box-shadow:0 5px 18px rgba(37,59,68,.3); display:flex; align-items:center; justify-content:center; }
-  #fab:active { background:var(--accent-dark); }
 
   /* ---------- Bottom-Sheet ----------
      Muss ueber der Detailansicht (z-index 50) liegen, sonst oeffnet sich
@@ -308,7 +318,8 @@
   .full-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
                padding:16px 16px calc(28px + var(--bot)); }
   .f-label { font-size:9.5px; font-weight:400; text-transform:uppercase; letter-spacing:.15em;
-             color:var(--muted-hell); margin:26px 0 9px; }
+             color:var(--muted-hell); margin:34px 0 10px; }
+  .rowbtns.erste { margin-top:22px; }
   .f-label:first-child { margin-top:0; }
   #dTitle {
     width:100%; border:none; background:none; font-size:22px; font-weight:400;
@@ -336,11 +347,11 @@
 
   /* ---------- Formatier-Editor ---------- */
   .rte {
-    min-height:130px; padding:12px; border:1px solid var(--rahmen); border-radius:var(--feld-radius);
-    background:none; font-size:16px; line-height:1.5; outline:none;
+    min-height:120px; padding:4px 0 12px; border:none; border-bottom:1px solid var(--line-zart);
+    border-radius:0; background:none; font-size:16px; line-height:1.5; outline:none;
     word-break:break-word; -webkit-user-select:text; user-select:text;
   }
-  .rte:focus { border-color:var(--accent); }
+  .rte:focus { border-bottom-color:var(--accent); }
   .rte.sm { min-height:64px; }
   .rte.is-empty:before { content:attr(data-placeholder); color:var(--muted-hell); pointer-events:none; }
   .rte ul { list-style:disc outside; margin:5px 0; padding-left:23px; }
@@ -404,10 +415,10 @@
      dort, wo etwas angetippt werden SOLL und sonst nichts es anzeigt. */
   .wide { width:100%; padding:13px; border-radius:var(--feld-radius); font-size:10px;
           font-weight:400; letter-spacing:.14em; text-transform:uppercase;
-          margin-top:14px; background:none; box-shadow:none;
-          border:1px solid var(--rahmen); color:var(--muted); }
+          margin-top:16px; background:none; box-shadow:none;
+          border:none; color:var(--muted); }
   .wide:disabled { opacity:.35; }
-  .wide.done { background:none; border-color:var(--accent); color:var(--accent); box-shadow:none; }
+  .wide.done { background:none; border:1px solid var(--accent); color:var(--accent); box-shadow:none; }
   .wide.del { color:var(--overdue); border-color:transparent; background:none; box-shadow:none; }
 
   /* ---------- Rueckmeldeleiste ----------
@@ -448,27 +459,23 @@
   <div class="searchbar hidden" id="searchBar">
     <input type="search" id="search" placeholder="Titel, Beschreibung, Tag …" autocomplete="off">
   </div>
-  <div class="statusbar hidden" id="statusBar"></div>
   <button class="dashbar" id="dashBar" aria-label="Verteilung nach Status"></button>
 </header>
 
 <main id="main"><div class="loading"><div class="spin"></div>Lädt…</div></main>
 
-<button id="fab" aria-label="Neues Ticket">
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-</button>
+
 
 <nav>
   <button data-view="today" class="on">
-    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h11M4 12h11M4 18h7"/><path d="M17.5 17.5l2 2 3.5-4"/></svg>
-    Heute
+    <svg class="nic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2.5h12v11H2z"/><path d="M4.8 8.2 7 10.4l4.2-4.4"/></svg>
+    Aufgaben
   </button>
-  <button data-view="board">
-    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="6" height="16" rx="1.6"/><rect x="12" y="4" width="6" height="10" rx="1.6"/></svg>
-    Board
+  <button id="navPlus" aria-label="Neues Ticket">
+    <svg class="nic gross" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10"/><path d="M3 8h10"/></svg>
   </button>
   <button data-view="infos">
-    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3.5 3.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M8 10h5M8 14h7"/></svg>
+    <svg class="nic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 1.5h7l3 3v11H3z"/><path d="M9.6 1.6v3.2h3.2"/><path d="M5.4 8.4h5.2"/><path d="M5.4 11.2h5.2"/></svg>
     Infos
   </button>
 </nav>
@@ -509,8 +516,57 @@
      jede Animation ist ein waagerechtes Sprite-Sheet aus 100x100-Bildern.
      Die Figur belegt darin nur einen kleinen Teil — gemeinsamer Ausschnitt
      ueber alle zwoelf: x 31, y 28, 39x36. */
-  var TAG_EMOJI = { SLS:"🤝", FIN:"💰", MKT:"📣", OPS:"⚙️", SF:"☁️", BIZDEV:"🚀", PROD:"📦",
-                    ANDERE:"🔖", EHE:"💍", SOLO:"🧘", GEBURTSTAGE:"🎂", ARBEIT:"🔁" };
+  /* Symbolsatz wortgleich aus der Desktop-Fassung uebernommen, damit beide
+     Oberflaechen dieselben Zeichen benutzen. */
+  var ICON_PFADE = {
+    // Tag-Zeichen
+    // Ein Handschlag ist auf 15 px nicht mehr zu erkennen — er wurde zur
+    // Schlängellinie. Die Mappe liest sich auf dieser Größe eindeutig.
+    mappe:      "M1.8 5h12.4v8.2H1.8zM5.6 5V3.4a1 1 0 0 1 1-1h2.8a1 1 0 0 1 1 1V5M1.8 8.6h12.4",
+    geld:       "M1.5 4h13v8h-13zM8 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3M4 8h.01M12 8h.01",
+    megafon:    "M2 6.5v3l8 3.5V3L2 6.5zM2 6.5H1.2v3H2M11.5 6v4M13.5 5v6",
+    zahnrad:    "M8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8M8 1.5v1.6M8 12.9v1.6M2.9 2.9l1.2 1.2M11.9 11.9l1.2 1.2M1.5 8h1.6M12.9 8h1.6M2.9 13.1l1.2-1.2M11.9 4.1l1.2-1.2",
+    wolke:      "M4.5 12.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.6 1.1 2.5 2.5 0 0 1-.3 4.9z",
+    aufwaerts:  "M1.5 12 6 7l3 3 5.5-6M10 4h4.5v4.5",
+    paket:      "M8 1.8 14 5v6l-6 3.2L2 11V5zM2 5l6 3.2L14 5M8 8.2V14.4",
+    ring:       "M8 14.2c-3-2.2-6-4.4-6-7.2A3.4 3.4 0 0 1 8 4.8a3.4 3.4 0 0 1 6 2.2c0 2.8-3 5-6 7.2z",
+    person:     "M8 2.5a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2M2.8 14v-.7A4 4 0 0 1 6.8 9.3h2.4a4 4 0 0 1 4 4V14",
+    geschenk:   "M1.8 7.5h12.4v6.2H1.8zM1 5h14v2.5H1zM8 5v8.7M8 5S6.8 2 5.2 2a1.6 1.6 0 0 0 0 3M8 5s1.2-3 2.8-3a1.6 1.6 0 0 1 0 3",
+    wiederholen:"M13.5 6.5A5.5 5.5 0 0 0 3.4 4.4M2.5 9.5a5.5 5.5 0 0 0 10.1 2.1M13.5 2.5v4h-4M2.5 13.5v-4h4",
+    marke:      "M2.5 2.5h5.2l6 6-5.2 5.2-6-6zM5.4 5.4h.01",
+    // Zeichen der Oberfläche
+    hakenkasten:"M2 2.5h12v11H2zM4.8 8.2 7 10.4l4.2-4.4",
+    sprechblase:"M14 10.5a1.8 1.8 0 0 1-1.8 1.8H4.6L1.5 15V3.3A1.8 1.8 0 0 1 3.3 1.5h8.9A1.8 1.8 0 0 1 14 3.3z",
+    kalender:   "M2 3.5h12v11H2zM2 6.8h12M5.2 1.5v3M10.8 1.5v3",
+    plus:       "M8 3v10M3 8h10",
+    wechsel:    "M2 5h9M8.6 2.4 11.4 5 8.6 7.6M14 11H5M7.4 8.4 4.6 11l2.8 2.6",
+    kette:      "M6.6 9.4a2.6 2.6 0 0 0 3.9.3l2.1-2.1a2.6 2.6 0 0 0-3.7-3.7l-1.2 1.2M9.4 6.6a2.6 2.6 0 0 0-3.9-.3L3.4 8.4a2.6 2.6 0 0 0 3.7 3.7l1.2-1.2",
+    warnung:    "M8 2.2 14.6 13H1.4zM8 6.6v3.1M8 11.4h.01",
+    haken:      "M2.8 8.6 6.2 12l7-8",
+    gesicht:    "M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13M5.6 6.2h.01M10.4 6.2h.01M5.2 9.6a3.4 3.4 0 0 0 5.6 0",
+  };
+  /* Größe und Strichstärke sind fest, weil die Zeichen im Fließtext stehen und
+     dort nur eine Höhe brauchen, die zur Zeile passt. */
+  function icon(name, groesse){
+    var d = ICON_PFADE[name];
+    if (!d) return "";
+    var g = groesse || 15;
+    return `<svg class="ic" viewBox="0 0 16 16" width="${g}" height="${g}" fill="none" `
+      + `stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" `
+      + `aria-hidden="true">${ d.split("M").filter(Boolean).map(t=>`<path d="M${t.trim()}"/>`).join("") }</svg>`;
+  }
+  // Flache Liste aller Tags — wie am Desktop, dort heisst sie ebenso.
+  var TAGS = TAG_GROUPS.reduce(function(a,g){ return a.concat(g.tags); }, []);
+  function iconFuerTag(tg, g){ return TAG_ICON[tg] ? icon(TAG_ICON[tg], g||13) : ""; }
+  var TAG_ICON = { SLS:"mappe", FIN:"geld", MKT:"megafon", OPS:"zahnrad", SF:"wolke",
+                     BIZDEV:"aufwaerts", PROD:"paket", EHE:"ring", SOLO:"person",
+                     GEBURTSTAGE:"geschenk", ARBEIT:"wiederholen", ANDERE:"marke" };
+  function ticketIconName(t){ var tags=t.tags||[]; for(var g of TAG_GROUPS){ for(var tg of g.tags){ if(tags.includes(tg) && TAG_ICON[tg]) return TAG_ICON[tg]; } } return ""; }
+  function ticketIcon(t, groesse){ var n = ticketIconName(t); return n ? icon(n, groesse) : ""; }
+  // Das Symbol steht für den ersten passenden Tag — für die Gruppierung in der
+  // Tabelle braucht es auch dessen Namen, nicht nur das Zeichen.
+
+
 
   var WEBAPP_URL   = "https://script.google.com/macros/s/AKfycbwzQMXbj1tUfHIx-cv78fGrT9IvkV5JfrqY-wFfS8eEWOd7Nz-SqTjnIENP8heI8IClCQ/exec";
   var WEBAPP_TOKEN = "";
@@ -659,15 +715,6 @@
     for (var i=0;i<TAG_GROUPS.length;i++)
       if (tags.some(function(tg){ return TAG_GROUPS[i].tags.indexOf(tg) >= 0; })) return TAG_GROUPS[i].color;
     return ACCENT;
-  }
-  function ticketEmoji(t){
-    var tags = t.tags || [];
-    for (var i=0;i<TAG_GROUPS.length;i++)
-      for (var j=0;j<TAG_GROUPS[i].tags.length;j++){
-        var tg = TAG_GROUPS[i].tags[j];
-        if (tags.indexOf(tg) >= 0 && TAG_EMOJI[tg]) return TAG_EMOJI[tg];
-      }
-    return "";
   }
 
   /* =====================================================================
@@ -1301,7 +1348,7 @@
      Zustand
      ===================================================================== */
   var tickets = [], recurring = [], doneTabOk = false, lastLoadOk = 0;
-  var view = "today", boardStatus = "Backlog";
+  var view = "today";
   var query = "", filterTags = [], loaded = false;
   var editing = null;       // Ticket in der Detailansicht (null = neu)
   var draft = null;         // Arbeitskopie der Detailansicht
@@ -1487,59 +1534,24 @@
      ===================================================================== */
   /* Eine Zeile, zwei Textebenen: Titel oben, alles Weitere grau darunter
      in einem Fluss. Status und Datum sind darin weiterhin antippbar. */
-  function cardHtml(t){
-    var sc = STATUS_COLORS[t.status] || ACCENT;
-    var n = (t.comments||[]).length;
-    var st = subStats(t);
-    // Tag farbig statt grau: dieselbe Farbzuordnung wie am Desktop, damit die
-    // Gruppe (MYO / PRIVAT / Wiederkehrend) ohne Lesen erkennbar ist.
-    // Kein Farbwert am Tag: in dieser Sprache traegt Farbe nur "heute" und
-    // "blockiert". Die Zuordnung leistet die Versalie selbst.
-    var tagHtml = (t.tags||[]).map(function(tg){
-      return '<span class="tg">'+esc(tg)+'</span>';
-    }).join('<span class="sep">·</span>');
-    var trenner = '<span class="sep">·</span>';
-    // Ist das Ticket blockiert, steht das schon als Marke am Titel — dann hier
-    // nicht noch einmal. Die Marke ist selbst der Knopf zum Status-Aendern.
-    var blockiert = t.status === "Blocked";
-    var unten = (blockiert ? "" : '<button class="act" data-act="status">'+esc(statusLabel(t.status))+'</button>' + trenner)
-              + '<button class="act '+dueClass(t.dueDate)+'" data-act="date">'+esc(fmtDueKurz(t.dueDate))+'</button>'
-              + (tagHtml ? trenner + tagHtml : "")
-              + (st.total ? trenner + "☑ " + st.done + "/" + st.total : "")
-              + (n ? trenner + n + (n===1 ? " Update" : " Updates") : "");
+  /* Zeile Zeile-fuer-Zeile wie am Desktop: Frist links, Haken, Titel,
+     darunter Tag und ggf. "Blockiert". Symbol statt Emoji. */
+  function cardHtml(t, mitDatum){
+    var tag = (t.tags||[]).filter(function(tg){ return TAGS.indexOf(tg)>=0; })[0] || (t.tags||[])[0] || "";
+    var blk = t.status==="Blocked" ? '<span class="li-blk">Blockiert</span>' : "";
+    var heute = t.dueDate === todayISO();
+    var frist = (mitDatum && t.dueDate) ? (tagKurz(t.dueDate)+" "+fmtKurz(t.dueDate)) : (heute ? "heute" : "");
+    var sym = ticketIcon(t, 13);
     return '<div class="swipe" data-id="'+t.id+'">'
-      + '<div class="swipe-bg erledigt">'
-      +   '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>'
-      + '</div>'
-      + '<div class="swipe-bg spaeter">'
-      +   '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'
-      + '</div>'
+      + '<div class="swipe-bg erledigt"></div><div class="swipe-bg spaeter"></div>'
       + '<div class="card" data-id="'+t.id+'">'
-
-      +   '<div class="body" data-act="open">'
-      +     '<div class="ttl-zeile"><div class="ttl">'+esc(t.title||"(ohne Titel)")+'</div>'
-      +       (t.status==="Blocked" ? '<button class="blk" data-act="status">blockiert</button>' : "") + '</div>'
-      +     '<div class="meta">'+unten+'</div>'
-      +   '</div>'
+      +   '<span class="li-frist">'+esc(frist)+'</span>'
       +   '<button class="done-btn" data-act="done" aria-label="Erledigt"><span class="circ"></span></button>'
-      + '</div>'
-      + '</div>';
-  }
-
-  /* Zugeklappte Gruppen werden gemerkt. Bei "Später" mit oft einem Dutzend
-     Eintraegen ist das der eigentliche Gewinn auf dem kleinen Schirm. */
-  var grpZu = {};
-  try { grpZu = JSON.parse(localStorage.getItem("board-gruppen-zu-mobil") || "{}") || {}; } catch(e){ grpZu = {}; }
-  function grpSchluessel(title){ return title.replace(/[^A-Za-zÄÖÜäöüß]/g,"").toLowerCase(); }
-
-  function groupHtml(title, list, isOver, zusatz, istHeute){
-    if (!list.length) return "";
-    var k = grpSchluessel(title), zu = !!grpZu[k];
-    var unter = (zusatz ? zusatz + " · " : "") + list.length;
-    return '<section class="grp'+(isOver?" over":"")+(istHeute?" heute":"")+'">'
-         + '<h2 class="'+(zu?"zu":"")+'" data-grp="'+k+'">'+esc(title)
-         + '<small>'+esc(unter)+'</small></h2>'
-         + (zu ? "" : list.map(cardHtml).join("")) + '</section>';
+      +   '<div class="body" data-act="open">'
+      +     '<div class="ttl">'+esc(t.title||"(ohne Titel)")+'</div>'
+      +     '<div class="meta">'+sym+(tag?'<span class="tg">'+esc(tag)+'</span>':"")+blk+'</div>'
+      +   '</div>'
+      + '</div></div>';
   }
 
   function sortByDue(a,b){
@@ -1549,48 +1561,65 @@
     return a.dueDate < b.dueDate ? -1 : (a.dueDate > b.dueDate ? 1 : 0);
   }
 
-  function renderToday(){
-    var open = tickets.filter(passes), today = todayISO();
-    var buckets = { over:[], today:[], tomorrow:[], week:[], later:[], none:[] };
-    open.forEach(function(t){
-      if (!t.dueDate){ buckets.none.push(t); return; }
-      var d = daysBetween(parseISO(today), parseISO(t.dueDate));
-      if (d < 0) buckets.over.push(t);
-      else if (d === 0) buckets.today.push(t);
-      else if (d === 1) buckets.tomorrow.push(t);
-      else if (d <= 7) buckets.week.push(t);
-      else buckets.later.push(t);
+  /* Gruppierung Zeile fuer Zeile aus der Desktop-Fassung uebernommen:
+     Ueberfaellig, Heute, Morgen — und danach EINE Gruppe je einzelnem Datum,
+     benannt nach dem Wochentag. Kein "Diese Woche"/"Spaeter" mehr. */
+  /* Zugeklappte Gruppen werden gemerkt. */
+  var grpZu = {};
+  try { grpZu = JSON.parse(localStorage.getItem("board-gruppen-zu-mobil") || "{}") || {}; } catch(e){ grpZu = {}; }
+  var WT_LANG = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+  var WT_KURZ = ["So","Mo","Di","Mi","Do","Fr","Sa"];
+  function tagLang(iso){ var d=parseISO(iso); return d ? WT_LANG[d.getDay()] : ""; }
+  function tagKurz(iso){ var d=parseISO(iso); return d ? WT_KURZ[d.getDay()] : ""; }
+  function fmtKurz(iso){ var d=parseISO(iso); if(!d) return "";
+    return String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"."; }
+
+  function listenGruppen(){
+    var heute = todayISO(), d = parseISO(heute);
+    var morgen = toISO(new Date(d.getFullYear(), d.getMonth(), d.getDate()+1));
+    var offen = tickets.filter(function(t){ return t.status!=="Done" && passes(t); });
+    var nachTitel = function(a,b){ return (a.title||"").localeCompare(b.title||""); };
+    var g = [];
+
+    var ueber = offen.filter(function(t){ return t.dueDate && t.dueDate < heute; })
+                     .sort(function(a,b){ return a.dueDate.localeCompare(b.dueDate) || nachTitel(a,b); });
+    if (ueber.length) g.push({ id:"ueber", klasse:"spaet", titel:"Überfällig",
+                               sub:"seit "+fmtKurz(ueber[0].dueDate), items:ueber, mitDatum:true });
+
+    var hItems = offen.filter(function(t){ return t.dueDate === heute; }).sort(nachTitel);
+    if (hItems.length) g.push({ id:"heute", klasse:"heute", titel:"Heute",
+                                sub:tagLang(heute)+", "+fmtKurz(heute), items:hItems, mitDatum:false });
+
+    var mItems = offen.filter(function(t){ return t.dueDate === morgen; }).sort(nachTitel);
+    if (mItems.length) g.push({ id:"morgen", klasse:"", titel:"Morgen",
+                                sub:tagLang(morgen)+", "+fmtKurz(morgen), items:mItems, mitDatum:false });
+
+    var spaeter = offen.filter(function(t){ return t.dueDate && t.dueDate > morgen; });
+    var tage = spaeter.map(function(t){ return t.dueDate; }).filter(function(v,i,a){ return a.indexOf(v)===i; }).sort();
+    tage.forEach(function(iso){
+      g.push({ id:"d"+iso, klasse:"", titel:tagLang(iso), sub:fmtKurz(iso),
+               items:spaeter.filter(function(t){ return t.dueDate===iso; }).sort(nachTitel), mitDatum:false });
     });
-    Object.keys(buckets).forEach(function(k){ buckets[k].sort(sortByDue); });
 
-    var wtLang = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
-    var hd = parseISO(today);
-    var heuteZusatz = wtLang[hd.getDay()] + ", "
-                    + String(hd.getDate()).padStart(2,"0") + "." + String(hd.getMonth()+1).padStart(2,"0") + ".";
-    function kurz(iso){ var d=parseISO(iso); return d ? String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+"." : ""; }
-    var seit = buckets.over.length ? "seit " + kurz(buckets.over[0].dueDate) : "";
-    var bis  = buckets.week.length ? "bis " + kurz(buckets.week[buckets.week.length-1].dueDate) : "";
-    var html = groupHtml("Überfällig", buckets.over, true, seit)
-             + groupHtml("Heute", buckets.today, false, heuteZusatz, true)
-             + groupHtml("Morgen", buckets.tomorrow)
-             + groupHtml("Diese Woche", buckets.week, false, bis)
-             + groupHtml("Später", buckets.later)
-             + groupHtml("Ohne Datum", buckets.none);
-    $("main").innerHTML = html || "";
+    var ohne = offen.filter(function(t){ return !t.dueDate; }).sort(nachTitel);
+    if (ohne.length) g.push({ id:"ohne", klasse:"", titel:"Ohne Datum", sub:"", items:ohne, mitDatum:false });
+    return g;
   }
 
-  function renderBoard(){
-    var open = tickets.filter(passes);
-    $("statusBar").innerHTML = OPEN_STATUSES.map(function(s){
-      var n = open.filter(function(t){ return t.status === s; }).length;
-      return '<button class="sbtn'+(s===boardStatus?" on":"")+'" data-st="'+esc(s)+'">'
-           + esc(statusLabel(s)) + '<i>' + n + '</i></button>';
-    }).join("");
-    var list = open.filter(function(t){ return t.status === boardStatus; }).sort(sortByDue);
-    $("main").innerHTML = list.length
-      ? list.map(cardHtml).join("")
-      : "";
+  function renderToday(){
+    var g = listenGruppen();
+    $("main").innerHTML = g.length
+      ? g.map(function(b){
+          var zu = !!grpZu[b.id];
+          return '<section class="grp '+b.klasse+'">'
+               + '<h2 class="'+(zu?"zu":"")+'" data-grp="'+esc(b.id)+'">'+esc(b.titel)
+               + '<small>'+esc((b.sub? b.sub+" · ":"")+b.items.length)+'</small></h2>'
+               + (zu ? "" : b.items.map(function(t){ return cardHtml(t, b.mitDatum); }).join(""))
+               + '</section>';
+        }).join("")
+      : '<div class="leer">Nichts offen.</div>';
   }
+
 
   /* Verteilung ueber die gerade sichtbaren Tickets — folgt also Filter und Suche */
   function dashStats(){
@@ -1735,7 +1764,7 @@
     if ((n.tags||[]).length){
       html += '<div class="tagrow" style="margin-bottom:16px">' + n.tags.map(function(tg){
         return '<span class="tagopt on" style="background:'+tagColor(tg)+';color:'+onColor(tagColor(tg))+'">'
-             + (TAG_EMOJI[tg]?TAG_EMOJI[tg]+" ":"") + esc(tg) + '</span>'; }).join("") + '</div>';
+             + iconFuerTag(tg,13) + esc(tg) + '</span>'; }).join("") + '</div>';
     }
     pairs.forEach(function(p, i){
       var sw = /^#[0-9a-fA-F]{3,8}$/.test(p.v)
@@ -1798,7 +1827,7 @@
             var on = d.tags.indexOf(tg) >= 0;
             return '<button class="tagopt'+(on?" on":"")+'" data-tag="'+esc(tg)+'"'
                  + (on ? ' style="background:'+g.color+';color:'+onColor(g.color)+'"' : '') + '>'
-                 + (TAG_EMOJI[tg]?TAG_EMOJI[tg]+" ":"") + esc(tg) + '</button>';
+                 + iconFuerTag(tg,13) + esc(tg) + '</button>';
           }).join("") + '</div>';
     });
     html += '</div><div class="f-label">Oben anheften</div>'
@@ -1872,20 +1901,20 @@
 
   function render(){
     if (!loaded) return;
-    $("vTitle").textContent = view === "today" ? "Heute" : (view === "board" ? "Board" : "Infos");
-    $("statusBar").classList.toggle("hidden", view !== "board");
+    $("vTitle").textContent = view === "today" ? "Heute" : "Infos";
+
     $("dashBar").classList.toggle("hidden", view === "infos");
     $("bFilter").classList.toggle("on", filterTags.length > 0);
     renderDash();
     if (view === "today") renderToday();
-    else if (view === "board") renderBoard();
+
     else renderInfos();
     cacheSaveLater();
   }
 
   function setView(v){
     view = v;
-    document.querySelectorAll("nav button").forEach(function(x){
+    document.querySelectorAll("nav button[data-view]").forEach(function(x){
       x.classList.toggle("on", x.dataset.view === v);
     });
     render();
@@ -2079,7 +2108,7 @@
             var on = filterTags.indexOf(t) >= 0;
             return '<button class="tagopt'+(on?" on":"")+'" data-tag="'+esc(t)+'"'
                  + (on ? ' style="background:'+g.color+';color:'+onColor(g.color)+'"' : '') + '>'
-                 + (TAG_EMOJI[t]?TAG_EMOJI[t]+" ":"") + esc(t) + '</button>';
+                 + iconFuerTag(t,13) + esc(t) + '</button>';
           }).join("")
         + '</div>';
     });
@@ -2123,9 +2152,8 @@
 
     $("sheet").querySelectorAll("[data-jump]").forEach(function(b){
       b.addEventListener("click", function(){
-        boardStatus = b.dataset.jump;
         closeSheet();
-        setView("board");
+        setView("today");        // es gibt nur noch die Liste
       });
     });
     if ($("jumpOver")) $("jumpOver").addEventListener("click", function(){
@@ -2209,7 +2237,7 @@
 
   function tagKnopfText(tags){
     if (!tags || !tags.length) return "Tags wählen";
-    return tags.map(function(tg){ return (TAG_EMOJI[tg] ? TAG_EMOJI[tg]+" " : "") + tg; }).join(" · ");
+    return tags.map(function(tg){ return iconFuerTag(tg,13) + tg; }).join(" · ");
   }
   /* Tags liegen jetzt in einem Blatt wie Status und Faelligkeit — im Ticket
      nahmen die vier Gruppen mit allen Knoepfen fast einen halben Bildschirm ein,
@@ -2222,7 +2250,7 @@
             var on = draft.tags.indexOf(tg) >= 0;
             return '<button class="tagopt'+(on?" on":"")+'" data-tag="'+esc(tg)+'"'
                  + (on ? ' style="background:'+g.color+';color:'+onColor(g.color)+'"' : '') + '>'
-                 + (TAG_EMOJI[tg]?TAG_EMOJI[tg]+" ":"") + esc(tg) + '</button>';
+                 + iconFuerTag(tg,13) + esc(tg) + '</button>';
           }).join("") + '</div>';
     });
     html += '<button class="wide done" id="tagOk">Fertig</button>';
@@ -2244,8 +2272,7 @@
     var t = editing, d = draft;
     var sc = STATUS_COLORS[d.status] || ACCENT;
     var html = '<textarea id="dTitle" rows="1" placeholder="Titel des Tickets">'+esc(d.title)+'</textarea>'
-      + '<div class="f-label">Status &amp; Fälligkeit</div>'
-      + '<div class="rowbtns">'
+      + '<div class="rowbtns erste">'
       +   '<button class="pick" id="dStatus"><span class="dot" style="width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:'+sc+'"></span><span class="lbl">'+esc(statusLabel(d.status))+'</span></button>'
       +   '<button class="pick" id="dDate"><span class="lbl">'+esc(fmtDue(d.dueDate))+'</span></button>'
       +   '<button class="pick" id="dTagsBtn"><span class="lbl">'+tagKnopfText(d.tags)+'</span></button>'
@@ -2624,12 +2651,11 @@
     });
   });
 
-  $("statusBar").addEventListener("click", function(e){
-    var b = e.target.closest("[data-st]"); if (!b) return;
-    boardStatus = b.dataset.st; render();
-  });
 
-  document.querySelectorAll("nav button").forEach(function(b){
+  // Nur Knoepfe MIT data-view schalten die Ansicht um. Das Plus in der Mitte
+  // legt an — ohne diese Einschraenkung lief es in setView(undefined) und
+  // leerte die Liste.
+  document.querySelectorAll("nav button[data-view]").forEach(function(b){
     b.addEventListener("click", function(){ setView(b.dataset.view); });
   });
   $("dashBar").addEventListener("click", dashSheet);
@@ -2645,7 +2671,7 @@
   $("bFilter").addEventListener("click", filterSheet);
   $("bTheme").addEventListener("click", themeSheet);
   $("bReload").addEventListener("click", function(){ reload(true); });
-  $("fab").addEventListener("click", function(){
+  $("navPlus").addEventListener("click", function(){
     if (view === "infos"){ if (infosOk) openInfo(null); else snack("Erst den Tab „Infos“ im Sheet anlegen", null, true); }
     else openDetail(null);
   });
