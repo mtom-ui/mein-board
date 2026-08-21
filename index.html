@@ -319,7 +319,19 @@
                padding:16px 16px calc(28px + var(--bot)); }
   .f-label { font-size:9.5px; font-weight:400; text-transform:uppercase; letter-spacing:.15em;
              color:var(--muted-hell); margin:34px 0 10px; }
-  .rowbtns.erste { margin-top:22px; }
+  .rowbtns.erste { margin-top:20px; }
+  /* Kopf: Symbol und Titel auf einer Grundlinie. Das Symbol traegt den Tag und
+     oeffnet dessen Auswahl — deshalb sitzt es dort, wo es etwas aussagt. */
+  .d-kopf { display:flex; align-items:flex-start; gap:11px; }
+  .d-tag { flex:0 0 auto; padding:2px 0 0; background:none; border:none;
+           color:var(--muted); line-height:0; }
+  .d-tag.leer { color:var(--muted-hell); opacity:.55; }
+  .d-tag .ic { margin-right:0; vertical-align:0; }
+  .d-kopf #dTitle { flex:1; min-width:0; }
+  /* Status und Faelligkeit nebeneinander statt untereinander */
+  .rowbtns.zwei { flex-direction:row; gap:0; border-bottom:1px solid var(--line-zart); }
+  .rowbtns.zwei .pick { flex:1; border-bottom:none; }
+  .rowbtns.zwei .pick + .pick { border-left:1px solid var(--line-zart); padding-left:14px; }
   .f-label:first-child { margin-top:0; }
   #dTitle {
     width:100%; border:none; background:none; font-size:22px; font-weight:400;
@@ -2271,11 +2283,17 @@
   function renderDetail(){
     var t = editing, d = draft;
     var sc = STATUS_COLORS[d.status] || ACCENT;
-    var html = '<textarea id="dTitle" rows="1" placeholder="Titel des Tickets">'+esc(d.title)+'</textarea>'
-      + '<div class="rowbtns erste">'
+    // Das Tag-Symbol steht links neben dem Titel und ist zugleich der Knopf,
+    // der die Tag-Auswahl oeffnet. Ohne Tag ein blasses Platzhalter-Zeichen,
+    // damit die Tippflaeche bleibt und der Titel nicht springt.
+    var tagSym = (d.tags && d.tags.length) ? iconFuerTag(d.tags[0], 19) : icon("marke", 19);
+    var html = '<div class="d-kopf">'
+      +   '<button class="d-tag'+((d.tags&&d.tags.length)?"":" leer")+'" id="dTagsBtn" aria-label="Tags">'+tagSym+'</button>'
+      +   '<textarea id="dTitle" rows="1" placeholder="Titel des Tickets">'+esc(d.title)+'</textarea>'
+      + '</div>'
+      + '<div class="rowbtns erste zwei">'
       +   '<button class="pick" id="dStatus"><span class="dot" style="width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:'+sc+'"></span><span class="lbl">'+esc(statusLabel(d.status))+'</span></button>'
       +   '<button class="pick" id="dDate"><span class="lbl">'+esc(fmtDue(d.dueDate))+'</span></button>'
-      +   '<button class="pick" id="dTagsBtn"><span class="lbl">'+tagKnopfText(d.tags)+'</span></button>'
       + '</div>';
 
     // Unteraufgaben — nur bei bestehenden Tickets, sonst fehlt die ticket_id
