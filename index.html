@@ -390,36 +390,54 @@
                color:var(--muted-hell); margin-bottom:5px; }
   .cmt-box { margin-top:12px; }
 
-  /* ---------- Infos ---------- */
-  .icard { display:flex; align-items:flex-start; gap:10px; background:var(--card); border-radius:15px;
-           margin-bottom:9px; padding:13px 14px; box-shadow:var(--shadow); width:100%; text-align:left; }
+  /* ---------- Infos ----------
+     Gleiche Sprache wie die Aufgabenliste: keine gefuellten Kacheln, Trennung
+     durch Haarlinien, Zweitschriften als Versalien, Symbol statt Farbpunkt. */
+  .icard { display:flex; align-items:center; gap:12px; background:none; border-radius:0;
+           margin-bottom:0; padding:12px 16px; box-shadow:none; width:100%; text-align:left;
+           border-bottom:1px solid var(--line-zart); }
+  .icard:active { background:var(--chip); }
   .icard .imain { flex:1; min-width:0; display:block; }
-  .icard .ittl { display:block; font-size:15.5px; font-weight:600; line-height:1.3; word-break:break-word; }
-  .icard .isub { display:block; font-size:12.5px; color:var(--muted); margin-top:3px;
+  .icard .ittl { display:block; font-size:16px; font-weight:400; line-height:1.35;
+                 letter-spacing:-.008em; overflow-wrap:anywhere; }
+  .icard .isub { display:block; font-size:9.5px; letter-spacing:.15em; text-transform:uppercase;
+                 color:var(--muted-hell); margin-top:5px; line-height:1.5;
                  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .icard .idots { display:flex; gap:3px; flex:0 0 auto; padding-top:5px; }
-  .icard .idot { width:8px; height:8px; border-radius:50%; }
+  .icard .idots { display:flex; align-items:center; gap:7px; flex:0 0 auto; color:var(--muted-hell); }
+  .icard .idots .ic { margin-right:0; }
   .istar { color:var(--accent); }
-  .ikv { margin-bottom:10px; }
-  .ikv .ik { font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
-  .ikv .iv { display:flex; align-items:center; gap:9px; width:100%; text-align:left;
-             font-size:16px; padding:11px 13px; margin-top:5px; background:var(--card);
-             border-radius:12px; box-shadow:var(--shadow); word-break:break-all; }
+
+  /* Wert zum Antippen: Haarlinie statt Kasten, Beschriftung als Versalie */
+  .ikv { margin-bottom:0; border-bottom:1px solid var(--line-zart); padding:12px 0; }
+  .ikv .ik { font-size:9.5px; font-weight:400; text-transform:uppercase; letter-spacing:.15em;
+             color:var(--muted-hell); }
+  .ikv .iv { display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+             font-size:16px; padding:6px 0 0; margin-top:0; background:none;
+             border-radius:0; box-shadow:none; word-break:break-all; }
   .ikv .iv:active { background:var(--chip); }
-  .ikv .isw { width:17px; height:17px; border-radius:5px; border:1px solid var(--line); flex:0 0 auto; }
+  .ikv .isw { width:15px; height:15px; border-radius:3px; border:1px solid var(--rahmen); flex:0 0 auto; }
   .ikv .ival { flex:1; min-width:0; }
-  .ikv .icp { flex:0 0 auto; color:var(--muted); }
-  .irow { display:flex; gap:6px; margin-bottom:7px; align-items:center; }
-  .irow input { flex:1; min-width:0; padding:11px 12px; border-radius:11px; border:1px solid var(--line);
-                background:var(--card); color:var(--ink); font-family:inherit; font-size:16px; -webkit-appearance:none; }
-  .irow input:focus { outline:none; border-color:var(--accent); }
+  .ikv .icp { flex:0 0 auto; color:var(--muted-hell); font-size:9.5px; letter-spacing:.15em;
+              text-transform:uppercase; }
+  .itags { display:flex; flex-wrap:wrap; gap:14px; margin:6px 0 22px; }
+  .itag { font-size:9.5px; font-weight:400; letter-spacing:.15em; text-transform:uppercase;
+          color:var(--muted-hell); display:inline-flex; align-items:center; }
+
+  .irow { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+  .irow input { flex:1; min-width:0; padding:10px 0; border-radius:0; border:none;
+                border-bottom:1px solid var(--line-zart);
+                background:none; color:var(--ink); font-family:inherit; font-size:16px; -webkit-appearance:none; }
+  .irow input::placeholder { color:var(--muted-hell); }
+  .irow input:focus { outline:none; border-bottom-color:var(--accent); }
   .irow input.ik-in { flex:0 0 38%; }
-  .irow .idel { flex:0 0 auto; color:var(--muted); padding:8px 4px; font-size:17px; }
-  .ihead { font-size:21px; font-weight:800; letter-spacing:-.02em; line-height:1.25;
-           margin:0 0 10px; word-break:break-word; }
+  .irow .idel { flex:0 0 auto; color:var(--muted-hell); padding:8px 4px; font-size:17px; }
+
+  .ihead { font-size:22px; font-weight:400; letter-spacing:-.02em; line-height:1.3;
+           margin:0 0 4px; overflow-wrap:anywhere; }
   .isetup { font-size:15px; line-height:1.6; color:var(--muted); padding:26px 4px; }
   .isetup b { color:var(--ink); }
-  .isetup code { background:var(--chip); border-radius:5px; padding:1px 5px; font-size:14px; }
+  .isetup code { background:none; border-bottom:1px solid var(--line-zart); border-radius:0;
+                 padding:1px 2px; font-size:14px; }
 
   .md { font-size:15px; line-height:1.5; word-break:break-word; }
   .md ul { list-style:disc outside; margin:5px 0; padding-left:22px; }
@@ -1785,8 +1803,9 @@
       var sub = pairs.length
         ? pairs.map(function(p){ return p.k || p.v; }).join(" · ")
         : (n.body ? n.body.replace(/[#*`\-]/g," ").replace(/\s+/g," ").trim() : "");
-      var dots = (n.tags||[]).map(function(t){
-        return '<span class="idot" style="background:'+tagColor(t)+'"></span>'; }).join("");
+      // Symbol statt Farbpunkt — dieselbe Zuordnung wie in der Aufgabenliste.
+      // Farbe traegt in dieser Sprache nur "heute" und "blockiert".
+      var dots = (n.tags||[]).map(function(t){ return iconFuerTag(t, 14); }).join("");
       return '<button class="icard" data-info="'+esc(n.id)+'">'
         + '<span class="imain"><span class="ittl">'+(n.pinned?'<span class="istar">★</span> ':'')
         + esc(n.title||"(ohne Titel)")+'</span>'
@@ -1829,9 +1848,9 @@
     var n = infoEditing, pairs = infoRowsParse(n.rows), html = "";
     html += '<div class="ihead">'+(n.pinned?'<span class="istar">★</span> ':"")+esc(n.title||"(ohne Titel)")+'</div>';
     if ((n.tags||[]).length){
-      html += '<div class="tagrow" style="margin-bottom:16px">' + n.tags.map(function(tg){
-        return '<span class="tagopt on" style="background:'+tagColor(tg)+';color:'+onColor(tagColor(tg))+'">'
-             + iconFuerTag(tg,13) + esc(tg) + '</span>'; }).join("") + '</div>';
+      html += '<div class="itags">' + n.tags.map(function(tg){
+        return '<span class="itag">' + iconFuerTag(tg,13) + esc(tg) + '</span>';
+      }).join("") + '</div>';
     }
     pairs.forEach(function(p, i){
       var sw = /^#[0-9a-fA-F]{3,8}$/.test(p.v)
