@@ -130,6 +130,13 @@
             background:var(--accent); color:var(--on-accent); font-size:11px; font-weight:800;
             align-items:center; justify-content:center; margin-right:2px; }
   #qBadge.on { display:inline-flex; }
+  .q-hinweis { font-size:12.5px; color:var(--muted); line-height:1.5; margin:0 0 14px; }
+  .q-liste { border-top:1px solid var(--line-zart); margin-bottom:4px; }
+  .q-zeile { display:flex; align-items:baseline; gap:10px; padding:11px 0;
+             border-bottom:1px solid var(--line-zart); font-size:13.5px; }
+  .q-zeile.erste { color:var(--accent); }
+  .q-v { margin-left:auto; flex:0 0 auto; font-size:9px; letter-spacing:.14em;
+         text-transform:uppercase; color:var(--overdue); }
   .searchbar { padding:0 14px 10px; }
   .searchbar input {
     width:100%; padding:11px 14px; border:1px solid var(--line); border-radius:12px;
@@ -463,7 +470,7 @@
     <button class="ico" id="bTheme" aria-label="Aussehen">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a9 9 0 1 0 0 18c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.5-1.1-.3-.3-.4-.7-.4-1 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="11" cy="7.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/></svg>
     </button>
-    <span id="qBadge" aria-label="Ungespeicherte Änderungen"></span>
+    <button id="qBadge" aria-label="Ungespeicherte Änderungen anzeigen"></button>
     <button class="ico" id="bReload" aria-label="Aktualisieren">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-.6 4"/><path d="M20 4v7h-7"/></svg>
     </button>
@@ -855,6 +862,37 @@
     el.textContent = queue.length || "";
     el.classList.toggle("on", queue.length > 0);
   }
+  /* Der Zaehler sagte bisher nur "18" und sonst nichts. Ein Tipp darauf zeigt,
+     WAS wartet — sonst bleibt eine haengende Warteschlange unsichtbar. */
+  function jobText(j){
+    var was = j.action === "append" ? "Anlegen"
+            : j.action === "update" ? "Ändern"
+            : j.action === "delete" ? "Löschen" : j.action;
+    var titel = (j.row && (j.row.title || j.row.text)) || j.idValue || "";
+    return was + " · " + j.tab + (titel ? " · " + String(titel).slice(0,44) : "");
+  }
+  function warteschlangeBlatt(){
+    if (!queue.length){ snack("Alles gespeichert"); return; }
+    var html = '<h3>Wartet auf das Sheet</h3>'
+      + '<p class="q-hinweis">' + queue.length + (queue.length===1?" Änderung ist":" Änderungen sind")
+      + ' noch nicht im Google Sheet. Sie gehen der Reihe nach raus — der erste blockiert die übrigen.</p>'
+      + '<div class="q-liste">'
+      + queue.map(function(j,i){
+          var v = (j.versuche||0) > 0 ? '<span class="q-v">' + j.versuche + " Versuche</span>" : "";
+          return '<div class="q-zeile' + (i===0?" erste":"") + '">' + esc(jobText(j)) + v + '</div>';
+        }).join("")
+      + '</div>'
+      + '<button class="wide del" id="qWeg">Alle verwerfen</button>';
+    openSheet(html);
+    var w = document.getElementById("qWeg");
+    if (w) w.addEventListener("click", function(){
+      if (!confirm("Alle " + queue.length + " wartenden Änderungen verwerfen? Sie gehen dann verloren."))
+        return;
+      queue.length = 0; queueSave(); queueAnzeige(); closeSheet();
+      snack("Warteschlange geleert");
+    });
+  }
+
   function idFeld_(tab){
     return tab === TAB_COMMENTS  ? "comment_id"
          : tab === TAB_RECURRING ? "series_id"
@@ -946,6 +984,17 @@
       if (buendelGeht){
         try { if (await buendelVersuch()) continue; }
         catch(e){
+          // Wie im Einzelzweig: was endgueltig gescheitert ist, wird verworfen.
+          // Ohne diese Pruefung lief ein solcher Auftrag alle 30 Sekunden
+          // erneut und blockierte alles dahinter — der Zaehler oben wuchs
+          // dann immer weiter und ging nie zurueck.
+          if (e && e.endgueltig){
+            var kaputt = queue.shift(); queueSave(); queueAnzeige();
+            var txt = (e && e.message) || String(e);
+            if (/Zeile nicht gefunden/i.test(txt)) txt = "Der Eintrag existiert nicht mehr";
+            snack("Nicht gespeichert: " + txt, null, true);
+            continue;
+          }
           queue[0].versuche = (queue[0].versuche || 0) + 1; queueSave();
           setTimeout(function(){ queueLaeuft = false; queueRun(); },
                      Math.min(30000, 2000 * queue[0].versuche));
@@ -2694,6 +2743,7 @@
   $("search").addEventListener("input", function(){ query = this.value; render(); });
   $("bFilter").addEventListener("click", filterSheet);
   $("bTheme").addEventListener("click", themeSheet);
+  $("qBadge").addEventListener("click", warteschlangeBlatt);
   $("bReload").addEventListener("click", function(){ reload(true); });
   $("navPlus").addEventListener("click", function(){
     if (view === "infos"){ if (infosOk) openInfo(null); else snack("Erst den Tab „Infos“ im Sheet anlegen", null, true); }
