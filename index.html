@@ -26,6 +26,9 @@
     /* Aus der Desktop-Sprache uebernommen: eine hellere Zweitfarbe fuer die
        Versalien-Zeilen, eine zartere Linie und die gemeinsame Beschleunigung. */
     --muted-hell:#8B959A; --line-zart:rgba(37,59,68,.07);
+    /* Zahlen, Daten und Kuerzel im festen Schriftmass — sie sollen sich
+       ausrichten und als Angabe lesbar sein, nicht als Prosa. */
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Roboto Mono", monospace;
     --rahmen:rgba(37,59,68,.22); --feld-radius:9px;
     --weich:cubic-bezier(.2,.8,.25,1);
     color-scheme: light;
@@ -187,21 +190,69 @@
      Statuspunkt links und ein rotes Datum, wenn es ueberfaellig ist. */
   /* Huelle je Zeile: darunter liegen die beiden Wisch-Flaechen, darueber
      die Zeile selbst, die beim Wischen zur Seite faehrt. */
-  .swipe { position:relative; overflow:hidden; margin:0 -14px; }
+  /* ---- Die Karte ---------------------------------------------------------
+     Der Schatten sitzt am Wischbehaelter, nicht an der Karte: der Behaelter
+     muss beschneiden, damit die Wischflaechen darunter verborgen bleiben, und
+     wuerde einen Schatten der Karte mit abschneiden. Die Kante ist ein
+     Innenschatten und wird davon nicht beruehrt. */
+  .swipe { position:relative; overflow:hidden; margin:0 0 12px;
+           border-radius:15px; box-shadow:var(--karte-schatten);
+           transition:transform .07s ease, box-shadow .07s ease; }
   .swipe-bg { position:absolute; inset:0; display:flex; align-items:center;
               padding:0 22px; color:#fff; opacity:0; }
   .swipe-bg.erledigt { background:#6E9887; justify-content:flex-start; }
   .swipe-bg.spaeter  { background:var(--accent); justify-content:flex-end; }
-  .swipe + .swipe .card:before { content:""; position:absolute; left:16px; right:16px; top:0;
-                                 height:1px; background:var(--line-zart); }
-  .card { display:flex; align-items:center; gap:12px; padding:12px 16px; position:relative;
-          background:var(--cream); }
-  .card .li-frist { flex:0 0 62px; font-size:12px; color:var(--muted-hell);
-                    letter-spacing:.03em; font-variant-numeric:tabular-nums; }
+  .karte-flaeche, .card {
+    background:linear-gradient(152deg, var(--karte-1) 0%, var(--karte-2) 100%);
+    box-shadow:var(--karte-kante); }
+  .card { display:block; padding:15px 17px 13px; position:relative; }
+  /* Der Glanz kommt von links oben — aus derselben Richtung wie der
+     Schattenversatz. Auf dem Handy wandert er nicht: es gibt keinen Zeiger,
+     dem er folgen koennte. */
+  .card:before { content:""; position:absolute; inset:0; pointer-events:none;
+                 background:linear-gradient(135deg, rgba(255,255,255,.95) 0%,
+                            rgba(255,255,255,.22) 30%, rgba(255,255,255,0) 58%);
+                 opacity:var(--karte-glanz); }
+  .card > * { position:relative; }
   .card.zieht { transition:none; }
   .card.federt { transition:transform .22s cubic-bezier(.25,.8,.3,1); }
-  /* Druckgefuehl: die Zeile bekommt beim Beruehren eine ruhige Tonung */
-  .card.gedrueckt { background:var(--chip); }
+  /* Druck: kurzer, harter Weg wie bei einer steifen Karte auf dem Tisch.
+     Gedrueckt wird der ganze Behaelter, sonst bliebe der Schatten stehen. */
+  .swipe.gedrueckt { transform:scale(.985);
+                     box-shadow:0 1px 1px rgba(0,0,0,.22); }
+
+  /* ---- Innenleben, 1:1 wie am Desktop ---- */
+  .k-kopf { display:flex; align-items:flex-start; gap:11px; }
+  .k-titel { flex:1 1 auto; font-size:15.5px; font-weight:700; line-height:1.3;
+             letter-spacing:-.012em; overflow-wrap:anywhere; hyphens:auto; }
+  .k-marke { flex:0 0 auto; width:32px; height:32px; border-radius:50%;
+             display:flex; align-items:center; justify-content:center;
+             background:var(--karte-marke); border:1px solid var(--karte-rand);
+             box-shadow:0 1px 3px rgba(0,0,0,.10); }
+  .k-felder { display:flex; gap:26px; margin-top:15px; }
+  .k-lab { display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:.14em;
+           text-transform:uppercase; color:var(--muted-hell); margin-bottom:4px; }
+  .k-wert { display:block; font-family:var(--mono); font-size:13px; color:var(--ink);
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .k-wert.overdue { color:var(--overdue); }
+  .k-wert.today { color:var(--accent); }
+  .k-wert.leer { color:var(--muted-hell); }
+  .k-fuss { display:flex; align-items:flex-end; gap:12px; margin-top:15px; }
+  .k-status { font-family:var(--mono); font-size:9.5px; letter-spacing:.14em;
+              text-transform:uppercase; color:var(--muted-hell); white-space:nowrap; }
+  .k-status.blockiert { color:var(--overdue); }
+  .k-fort { flex:1 1 auto; min-width:0; }
+  .k-stand { font-family:var(--mono); font-size:11px; color:var(--muted-hell);
+             text-align:right; margin-bottom:7px; white-space:nowrap; }
+  .k-balken { height:4px; border-radius:2px; background:var(--karte-rille); overflow:hidden; }
+  .k-balken i { display:block; height:100%; border-radius:2px; background:var(--k-farbe, var(--accent)); }
+  .k-doppel { position:relative; flex:0 0 auto; width:36px; height:22px; }
+  .k-doppel i, .k-doppel u { position:absolute; top:0; width:22px; height:22px; border-radius:50%; }
+  .k-doppel u { right:0; background:var(--karte-rille); }
+  .k-doppel i { left:0; background:var(--k-farbe, var(--accent)); }
+  .k-hk { flex:0 0 auto; width:16px; height:16px; padding:0; background:none;
+          border:1px solid var(--muted-hell); border-radius:50%; margin-top:3px; }
+  .k-hk:active { background:var(--accent); border-color:var(--accent); }
   .card .dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; margin-left:2px;
                align-self:flex-start; margin-top:7px; }
   .card .body { flex:1; min-width:0; }
@@ -701,6 +752,42 @@
     r.style.setProperty("--accent", b.accent);
     r.style.setProperty("--accent-dark", darkenHex(b.accent, 0.18));
     r.style.setProperty("--on-accent", onColor(b.accent));
+    /* Kartenflaeche aus dem Palettengrund rechnen — dieselben Werte wie im
+       Desktop-Board, damit eine Karte auf beiden Geraeten aus demselben
+       Material ist. Drei Schattenebenen: Kontakt, Zwischenstufe, Umgebung.
+       Die Kante laeuft rundum, nicht nur oben: eine Karte ist an allen vier
+       Seiten geschnitten. */
+    if (DARK){
+      r.style.setProperty("--karte-1", mixHex(b.bg,"#ffffff",0.09));
+      r.style.setProperty("--karte-2", mixHex(b.bg,"#ffffff",0.035));
+      r.style.setProperty("--karte-marke", mixHex(b.bg,"#ffffff",0.14));
+      r.style.setProperty("--karte-rand", "rgba(255,255,255,.08)");
+      r.style.setProperty("--karte-schatten",
+        "0 1px 2px rgba(0,0,0,.50), 0 3px 6px -1px rgba(0,0,0,.34), 3px 12px 26px -10px rgba(0,0,0,.46)");
+      r.style.setProperty("--karte-kante",
+        "inset 0 1px 0 rgba(255,255,255,.16), inset 1px 0 0 rgba(255,255,255,.07), "
+        + "inset -1px 0 0 rgba(255,255,255,.07), inset 0 -1px 0 rgba(0,0,0,.42), "
+        + "inset 0 0 22px rgba(0,0,0,.16)");
+      r.style.setProperty("--karte-glanz", ".07");
+      r.style.setProperty("--karte-rille", "rgba(255,255,255,.18)");
+      r.style.setProperty("--glanzband", "rgba(255,255,255,.20)");
+      r.style.setProperty("--glanzband-2", "rgba(255,255,255,.05)");
+    } else {
+      r.style.setProperty("--karte-1", mixHex(b.bg,"#ffffff",0.94));
+      r.style.setProperty("--karte-2", mixHex(b.bg,"#ffffff",0.58));
+      r.style.setProperty("--karte-marke", mixHex(b.bg,"#ffffff",0.99));
+      r.style.setProperty("--karte-rand", "rgba(0,0,0,.055)");
+      r.style.setProperty("--karte-schatten",
+        "0 1px 2px rgba(0,0,0,.16), 0 2px 4px -1px rgba(0,0,0,.10), 3px 10px 22px -10px rgba(0,0,0,.22)");
+      r.style.setProperty("--karte-kante",
+        "inset 0 1px 0 rgba(255,255,255,.95), inset 1px 0 0 rgba(255,255,255,.45), "
+        + "inset -1px 0 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0,0,0,.13), "
+        + "inset 0 0 22px rgba(0,0,0,.035)");
+      r.style.setProperty("--karte-glanz", ".55");
+      r.style.setProperty("--karte-rille", "rgba(0,0,0,.11)");
+      r.style.setProperty("--glanzband", "rgba(255,255,255,.42)");
+      r.style.setProperty("--glanzband-2", "rgba(255,255,255,.10)");
+    }
     var mc = document.getElementById("themeColor");
     if (mc) mc.setAttribute("content", b.bg);
 
@@ -1643,21 +1730,48 @@
      in einem Fluss. Status und Datum sind darin weiterhin antippbar. */
   /* Zeile Zeile-fuer-Zeile wie am Desktop: Frist links, Haken, Titel,
      darunter Tag und ggf. "Blockiert". Symbol statt Emoji. */
+  /* Farbe eines Tickets = Farbe seines ersten Kuerzels. Ohne Kuerzel der
+     Akzent, damit nie ein farbloser Balken dasteht. */
+  function ticketFarbe(t){
+    var erst = (t.tags||[]).filter(function(x){ return TAG_COLOR[x]; })[0];
+    return erst ? TAG_COLOR[erst] : "var(--accent)";
+  }
+  /* Das Datum als Angabe, nicht als Satz: heute wird zum Wort, alles andere
+     bleibt die Zahl. Ueberfaellig behaelt sein Datum — "ueberfaellig" allein
+     verschweigt, seit wann. */
+  function kartenDatum(iso){
+    if (!iso) return { txt:"—", cls:"leer" };
+    var c = dueClass(iso);
+    if (c === "today") return { txt:"HEUTE", cls:"today" };
+    return { txt: fmtKurz(iso), cls: c === "over" ? "overdue" : "" };
+  }
   function cardHtml(t, mitDatum){
     var tag = (t.tags||[]).filter(function(tg){ return TAGS.indexOf(tg)>=0; })[0] || (t.tags||[])[0] || "";
-    var blk = t.status==="Blocked" ? '<span class="li-blk">Blockiert</span>' : "";
-    var heute = t.dueDate === todayISO();
-    var frist = (mitDatum && t.dueDate) ? (tagKurz(t.dueDate)+" "+fmtKurz(t.dueDate)) : (heute ? "heute" : "");
-    var sym = ticketIcon(t, 13);
+    var farbe = ticketFarbe(t);
+    var marke = '<span class="k-marke" style="color:'+farbe+'">'
+              + (ticketIcon(t, 16) || icon("marke", 16)) + '</span>';
+    var d = kartenDatum(t.dueDate);
+    var felder = '<div class="k-felder">'
+      + '<div><span class="k-lab">Fällig</span><span class="k-wert '+d.cls+'">'+esc(d.txt)+'</span></div>'
+      + '<div><span class="k-lab">Kategorie</span><span class="k-wert'+(tag?"":" leer")+'">'+(tag?esc(tag):"—")+'</span></div>'
+      + '</div>';
+    var st = subStats(t);
+    // Kurzform, weil links im Fuss schon der Status steht
+    var stand = st.total ? (st.done+"/"+st.total+" erledigt") : "—";
+    var breite = st.total ? Math.round(st.done/st.total*100) : 6;
+    var fuss = '<div class="k-fuss">'
+      + '<span class="k-status'+(t.status==="Blocked"?" blockiert":"")+'">'+esc(statusLabel(t.status))+'</span>'
+      + '<div class="k-fort"><div class="k-stand"'+(st.total?"":' title="ohne Unteraufgaben"')+'>'+esc(stand)+'</div>'
+      + '<div class="k-balken"><i style="width:'+breite+'%'+(st.total?"":";opacity:.35")+'"></i></div></div>'
+      + '<span class="k-doppel"><u></u><i></i></span></div>';
     return '<div class="swipe" data-id="'+t.id+'">'
       + '<div class="swipe-bg erledigt"></div><div class="swipe-bg spaeter"></div>'
-      + '<div class="card" data-id="'+t.id+'">'
-      +   '<span class="li-frist">'+esc(frist)+'</span>'
-      +   '<button class="done-btn" data-act="done" aria-label="Erledigt"><span class="circ"></span></button>'
-      +   '<div class="body" data-act="open">'
-      +     '<div class="ttl">'+esc(t.title||"(ohne Titel)")+'</div>'
-      +     '<div class="meta">'+sym+(tag?'<span class="tg">'+esc(tag)+'</span>':"")+blk+'</div>'
+      + '<div class="card" data-id="'+t.id+'" style="--k-farbe:'+farbe+'">'
+      +   '<div class="k-kopf" data-act="open">'
+      +     '<button class="k-hk" data-act="done" aria-label="Erledigt"></button>'
+      +     '<div class="k-titel">'+esc(t.title||"(ohne Titel)")+'</div>'+marke
       +   '</div>'
+      +   '<div data-act="open">'+felder+fuss+'</div>'
       + '</div></div>';
   }
 
@@ -2641,7 +2755,7 @@
     }
     function druckLoesen(){
       clearTimeout(druckZeit);
-      if (karte) karte.classList.remove("gedrueckt");
+      if (zeile) zeile.classList.remove("gedrueckt");
     }
     function zuruecksetzen(){
       druckLoesen();
@@ -2661,7 +2775,9 @@
       if (karte){
         karte.classList.remove("federt");
         // Erst nach kurzer Verzoegerung tonen, sonst blitzt es beim Scrollen auf
-        druckZeit = setTimeout(function(){ if (!art) karte.classList.add("gedrueckt"); }, 60);
+        // Gedrueckt wird der Wischbehaelter, nicht die Flaeche: an ihm haengt
+        // der Schatten, und ohne ihn bliebe der Schatten beim Druck stehen.
+        druckZeit = setTimeout(function(){ if (!art) zeile.classList.add("gedrueckt"); }, 60);
       }
     }, { passive:true });
 
