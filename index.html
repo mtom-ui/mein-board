@@ -1438,7 +1438,11 @@
   var editing = null;       // Ticket in der Detailansicht (null = neu)
   var draft = null;         // Arbeitskopie der Detailansicht
   var infos = [], infosOk = false, infosMissing = false, infosError = "";
-  var subtasksOk = false;
+  // subtasksOk  = die Unteraufgaben sind bestaetigt geladen
+  // subtasksFehlt = das Sheet hat den Tab wirklich nicht (vom Server gemeldet)
+  // Beides getrennt zu fuehren ist noetig: vor der ersten Antwort ist nur
+  // "noch nicht geprueft" wahr — und das ist keine Fehlermeldung wert.
+  var subtasksOk = false, subtasksFehlt = false;
   var infoEditing = null;   // Info in der Detailansicht (null = neu)
   var infoDraft = null;
   var infoMode = null;      // null = Ticket-Detail, "read" oder "edit" = Info-Detail
@@ -1455,7 +1459,8 @@
   function cacheSave(){
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify({
-        ts:Date.now(), tickets:tickets, recurring:recurring, infos:infos, infosOk:infosOk
+        ts:Date.now(), tickets:tickets, recurring:recurring, infos:infos, infosOk:infosOk,
+        subtasksOk:subtasksOk, subtasksFehlt:subtasksFehlt
       }));
       cacheTs = Date.now();
     } catch(e){}
@@ -1472,6 +1477,9 @@
       if (!c || !Array.isArray(c.tickets)) return false;
       tickets = c.tickets; recurring = c.recurring || []; infos = c.infos || [];
       infosOk = !!c.infosOk; cacheTs = c.ts || 0;
+      // Der Tab war beim letzten Mal da — bis zur naechsten Antwort gilt das
+      // weiter. Sonst behauptet die App minutenlang, es gaebe ihn nicht.
+      subtasksOk = !!c.subtasksOk; subtasksFehlt = !!c.subtasksFehlt;
       return true;
     } catch(e){ return false; }
   }
@@ -1535,8 +1543,16 @@
     // Unteraufgaben ebenso — lieber den alten Stand behalten als sie verschwinden lassen
     var bySub;
     subtasksOk = Array.isArray(d[TAB_SUBTASKS]);
-    if (subtasksOk) bySub = subtasksById(d[TAB_SUBTASKS]);
-    else { bySub = {}; tickets.forEach(function(t){ if ((t.subtasks||[]).length) bySub[t.id] = t.subtasks; }); }
+    if (subtasksOk){
+      subtasksFehlt = false;
+      bySub = subtasksById(d[TAB_SUBTASKS]);
+    } else {
+      // Nur wenn der Server ausdruecklich sagt, dass es den Tab nicht gibt.
+      // Ein Zeitablauf oder eine halbe Antwort heisst nicht, dass er fehlt.
+      var subFehler = (d[TAB_SUBTASKS] && d[TAB_SUBTASKS].error) || "";
+      subtasksFehlt = /nicht gefunden|not found/i.test(subFehler);
+      bySub = {}; tickets.forEach(function(t){ if ((t.subtasks||[]).length) bySub[t.id] = t.subtasks; });
+    }
     tickets = mapTickets(rawT, byTicket, bySub);
     loaded = true;
 
@@ -2446,7 +2462,7 @@
   function subsZeichnen(){
     var box = $("dSubs"); if (!box || !editing) return;
     var liste = subListe(editing);
-    if (!subtasksOk){
+    if (subtasksFehlt){
       box.innerHTML = '<div class="sub-hinweis">Der Tab <b>Subtasks</b> fehlt im Google Sheet.</div>';
       return;
     }
@@ -2487,7 +2503,7 @@
   function subAnlegen(){
     var feld = $("dSubNeu"); if (!feld || !editing) return;
     var titel = feld.value.trim(); if (!titel) return;
-    if (!subtasksOk){ snack("Erst den Tab „Subtasks“ im Sheet anlegen", null, true); return; }
+    if (subtasksFehlt){ snack("Erst den Tab „Subtasks“ im Sheet anlegen", null, true); return; }
     var liste = (editing.subtasks = subListe(editing));
     var s = { subtask_id: uid(), title: titel, done: false, pos: subNaechstePos(liste), doneAt: "" };
     liste.push(s);
