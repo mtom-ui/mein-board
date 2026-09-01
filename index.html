@@ -860,15 +860,18 @@
       r.style.setProperty("--karte-1", mixHex(b.bg,"#ffffff",0.94));
       r.style.setProperty("--karte-2", mixHex(b.bg,"#ffffff",0.58));
       r.style.setProperty("--karte-marke", mixHex(b.bg,"#ffffff",0.99));
-      r.style.setProperty("--karte-rand", "rgba(0,0,0,.055)");
+      /* Wie am Desktop: im Hellmodus war die Physik halb so stark, und eine
+         weisse Lichtkante auf fast weisser Karte sieht niemand. Hier dunkelt
+         die Kante, und der Schatten traegt allein. */
+      r.style.setProperty("--karte-rand", "rgba(0,0,0,.10)");
       r.style.setProperty("--karte-schatten",
-        "0 1px 2px rgba(0,0,0,.16), 0 2px 4px -1px rgba(0,0,0,.10), 3px 10px 22px -10px rgba(0,0,0,.22)");
+        "0 1px 2px rgba(0,0,0,.22), 0 3px 6px -1px rgba(0,0,0,.16), 4px 12px 26px -10px rgba(0,0,0,.34)");
       r.style.setProperty("--karte-hoch",
-        "0 2px 4px rgba(0,0,0,.18), 0 4px 8px -2px rgba(0,0,0,.12), 6px 20px 38px -14px rgba(0,0,0,.28)");
+        "0 2px 5px rgba(0,0,0,.26), 0 6px 12px -2px rgba(0,0,0,.20), 7px 24px 44px -14px rgba(0,0,0,.42)");
       r.style.setProperty("--karte-kante",
-        "inset 0 1px 0 rgba(255,255,255,.95), inset 1px 0 0 rgba(255,255,255,.45), "
-        + "inset -1px 0 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0,0,0,.13), "
-        + "inset 0 0 22px rgba(0,0,0,.035)");
+        "inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(0,0,0,.16), "
+        + "inset 1px 0 0 rgba(0,0,0,.05), inset -1px 0 0 rgba(0,0,0,.05), "
+        + "inset 0 0 26px rgba(0,0,0,.055)");
       r.style.setProperty("--karte-glanz", ".55");
       /* Wie am Desktop: fetter Titel in reiner Textfarbe kam auf 11,3 bis 17,2
          zu 1. Um 15 % zum Grund aufgehellt bleiben 7,1 bis 11,2. */
