@@ -864,21 +864,24 @@
          weisse Lichtkante auf fast weisser Karte sieht niemand. Hier dunkelt
          die Kante, und der Schatten traegt allein. */
       r.style.setProperty("--karte-rand", "rgba(0,0,0,.10)");
+      /* Kraeftiger, seit der Glanz weg ist: der Schatten traegt hier allein. */
       r.style.setProperty("--karte-schatten",
-        "0 1px 2px rgba(0,0,0,.22), 0 3px 6px -1px rgba(0,0,0,.16), 4px 12px 26px -10px rgba(0,0,0,.34)");
+        "0 1px 2px rgba(0,0,0,.26), 0 4px 8px -1px rgba(0,0,0,.20), 5px 15px 32px -10px rgba(0,0,0,.40)");
       r.style.setProperty("--karte-hoch",
-        "0 2px 5px rgba(0,0,0,.26), 0 6px 12px -2px rgba(0,0,0,.20), 7px 24px 44px -14px rgba(0,0,0,.42)");
+        "0 2px 5px rgba(0,0,0,.30), 0 8px 16px -2px rgba(0,0,0,.26), 8px 28px 50px -14px rgba(0,0,0,.50)");
       r.style.setProperty("--karte-kante",
         "inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(0,0,0,.16), "
         + "inset 1px 0 0 rgba(0,0,0,.05), inset -1px 0 0 rgba(0,0,0,.05), "
         + "inset 0 0 26px rgba(0,0,0,.055)");
-      r.style.setProperty("--karte-glanz", ".55");
+      /* Glanz im Hellmodus weg: er hellte eine fast weisse Karte auf fast
+         weissem Grund noch weiter auf und arbeitete gegen den Schatten. */
+      r.style.setProperty("--karte-glanz", "0");
       /* Wie am Desktop: fetter Titel in reiner Textfarbe kam auf 11,3 bis 17,2
          zu 1. Um 15 % zum Grund aufgehellt bleiben 7,1 bis 11,2. */
       r.style.setProperty("--karte-tinte", mixHex(b.ink, b.bg, 0.10));
       r.style.setProperty("--karte-rille", "rgba(0,0,0,.11)");
-      r.style.setProperty("--glanzband", "rgba(255,255,255,.42)");
-      r.style.setProperty("--glanzband-2", "rgba(255,255,255,.10)");
+      r.style.setProperty("--glanzband", "rgba(255,255,255,.16)");
+      r.style.setProperty("--glanzband-2", "rgba(255,255,255,.04)");
     }
     var mc = document.getElementById("themeColor");
     if (mc) mc.setAttribute("content", b.bg);
