@@ -224,7 +224,8 @@
   /* ---- Innenleben, 1:1 wie am Desktop ---- */
   .k-kopf { display:flex; align-items:flex-start; gap:11px; }
   .k-titel { flex:1 1 auto; font-size:15.5px; font-weight:700; line-height:1.3;
-             letter-spacing:-.012em; overflow-wrap:anywhere; hyphens:auto; }
+             letter-spacing:-.012em; overflow-wrap:anywhere; hyphens:auto;
+             color:var(--karte-tinte, var(--ink)); }
   .k-marke { flex:0 0 auto; width:32px; height:32px; border-radius:50%;
              display:flex; align-items:center; justify-content:center;
              background:var(--karte-marke); border:1px solid var(--karte-rand);
@@ -237,7 +238,8 @@
   .k-felder { display:flex; gap:26px; margin-top:15px; }
   .k-lab { display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:.14em;
            text-transform:uppercase; color:var(--muted-hell); margin-bottom:4px; }
-  .k-wert { display:block; font-family:var(--mono); font-size:13px; color:var(--ink);
+  .k-wert { display:block; font-family:var(--mono); font-size:13px;
+            color:var(--karte-tinte, var(--ink));
             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .k-wert.overdue { color:var(--overdue); }
   .k-wert.today { color:var(--accent); }
@@ -814,6 +816,7 @@
         + "inset -1px 0 0 rgba(255,255,255,.07), inset 0 -1px 0 rgba(0,0,0,.42), "
         + "inset 0 0 22px rgba(0,0,0,.16)");
       r.style.setProperty("--karte-glanz", ".07");
+      r.style.setProperty("--karte-tinte", b.ink);
       r.style.setProperty("--karte-rille", "rgba(255,255,255,.18)");
       r.style.setProperty("--glanzband", "rgba(255,255,255,.20)");
       r.style.setProperty("--glanzband-2", "rgba(255,255,255,.05)");
@@ -831,6 +834,9 @@
         + "inset -1px 0 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0,0,0,.13), "
         + "inset 0 0 22px rgba(0,0,0,.035)");
       r.style.setProperty("--karte-glanz", ".55");
+      /* Wie am Desktop: fetter Titel in reiner Textfarbe kam auf 11,3 bis 17,2
+         zu 1. Um 15 % zum Grund aufgehellt bleiben 7,1 bis 11,2. */
+      r.style.setProperty("--karte-tinte", mixHex(b.ink, b.bg, 0.15));
       r.style.setProperty("--karte-rille", "rgba(0,0,0,.11)");
       r.style.setProperty("--glanzband", "rgba(255,255,255,.42)");
       r.style.setProperty("--glanzband-2", "rgba(255,255,255,.10)");
