@@ -419,6 +419,31 @@
     50%     { transform:translateY(-1.5px) rotate(-.12deg); }
   }
   @keyframes dLicht { from { background-position:108% -8%; } to { background-position:-8% 108%; } }
+  /* Der Moment, in dem die Karte aus der Liste genommen wird: sie steigt auf,
+     und das Licht zieht einmal schnell durch. Danach geht sie in die ruhige
+     Schwebebewegung ueber. Wie am Desktop. */
+  .d-karte.eintritt { animation: dEintritt .5s cubic-bezier(.2,.8,.25,1) both,
+                                 dSchweben 7s ease-in-out .5s infinite; }
+  .d-karte.eintritt:after { animation: dDurchzug .75s ease-out both,
+                                       dLicht 9s ease-in-out .75s infinite alternate; }
+  @keyframes dEintritt {
+    from { transform:translateY(16px) scale(.96); box-shadow:var(--karte-schatten), var(--karte-kante); }
+    to   { transform:translateY(1.5px) scale(1);  box-shadow:var(--karte-hoch), var(--karte-kante); }
+  }
+  @keyframes dDurchzug { from { background-position:130% -30%; } to { background-position:108% -8%; } }
+  /* Handy-Entsprechung zum wandernden Glanz: am Desktop folgt er dem Zeiger,
+     den es hier nicht gibt. Stattdessen zieht beim Druck ein Lichtband durch. */
+  .card:after { content:""; position:absolute; inset:0; pointer-events:none;
+                background:linear-gradient(115deg, rgba(255,255,255,0) 30%,
+                           var(--glanzband) 48%, rgba(255,255,255,0) 66%);
+                background-size:250% 250%; background-position:100% 0%;
+                opacity:0; transition:opacity .18s ease, background-position .55s ease; }
+  .swipe.gedrueckt .card:after { opacity:1; background-position:0% 100%; }
+  @media (prefers-reduced-motion: reduce) {
+    .d-karte, .d-karte.eintritt { animation:none; }
+    .d-karte:after, .d-karte.eintritt:after { animation:none; opacity:.55; }
+    .card:after { transition:none; }
+  }
   .d-karte #dTitle { flex:1 1 auto; min-width:0; border:none; background:none; padding:0;
                      font-family:inherit; font-size:19px; font-weight:700;
                      letter-spacing:-.015em; line-height:1.25; color:var(--ink);
@@ -2501,6 +2526,10 @@
     $("dSave").textContent = "Sichern";
     renderDetail();
     $("detail").classList.add("on");
+    // Das Fenster bleibt im Dokument stehen, die Animation liefe also nur beim
+    // allerersten Mal. Klasse abnehmen, Umbruch erzwingen, neu setzen.
+    var dk = document.getElementById("dKarte");
+    if (dk){ dk.classList.remove("eintritt"); void dk.offsetWidth; dk.classList.add("eintritt"); }
     // Die Titelhoehe erst messen, wenn der Dialog im Bild ist — ausserhalb
     // liefert scrollHeight einen zu grossen Wert und reisst eine Luecke auf.
     requestAnimationFrame(function(){ var ta = $("dTitle"); if (ta) autoGrow(ta); });
