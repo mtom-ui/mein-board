@@ -788,9 +788,16 @@
        Die Kante laeuft rundum, nicht nur oben: eine Karte ist an allen vier
        Seiten geschnitten. */
     if (DARK){
-      r.style.setProperty("--karte-1", mixHex(b.bg,"#ffffff",0.09));
-      r.style.setProperty("--karte-2", mixHex(b.bg,"#ffffff",0.035));
-      r.style.setProperty("--karte-marke", mixHex(b.bg,"#ffffff",0.14));
+      /* Wie am Desktop: auf einem dunklen Grund, der schon hell ist ("Fern",
+         relative Leuchtdichte .055 gegen .008-.013 bei den uebrigen), wird die
+         Karte ABGEDUNKELT statt aufgehellt. Sonst fielen sechs der zwoelf
+         Kuerzelfarben darauf unter 4,5:1. Als Gegenstand traegt sie die Kante
+         und der Schatten, nicht die Helligkeit. */
+      var hellerGrund = relLum(b.bg) > 0.03;
+      var ton = hellerGrund ? "#000000" : "#ffffff";
+      r.style.setProperty("--karte-1", mixHex(b.bg, ton, 0.09));
+      r.style.setProperty("--karte-2", mixHex(b.bg, ton, hellerGrund ? 0.14 : 0.035));
+      r.style.setProperty("--karte-marke", mixHex(b.bg, "#ffffff", hellerGrund ? 0.045 : 0.14));
       r.style.setProperty("--karte-rand", "rgba(255,255,255,.08)");
       r.style.setProperty("--karte-schatten",
         "0 1px 2px rgba(0,0,0,.50), 0 3px 6px -1px rgba(0,0,0,.34), 3px 12px 26px -10px rgba(0,0,0,.46)");
