@@ -218,8 +218,8 @@
   .card.federt { transition:transform .22s cubic-bezier(.25,.8,.3,1); }
   /* Druck: kurzer, harter Weg wie bei einer steifen Karte auf dem Tisch.
      Gedrueckt wird der ganze Behaelter, sonst bliebe der Schatten stehen. */
-  .swipe.gedrueckt { transform:scale(.985);
-                     box-shadow:0 1px 1px rgba(0,0,0,.22); }
+  .swipe.gedrueckt { transform:scale(.972);
+                     box-shadow:0 1px 1px rgba(0,0,0,.24); }
 
   /* ---- Innenleben, 1:1 wie am Desktop ---- */
   .k-kopf { display:flex; align-items:flex-start; gap:11px; }
@@ -229,6 +229,11 @@
              display:flex; align-items:center; justify-content:center;
              background:var(--karte-marke); border:1px solid var(--karte-rand);
              box-shadow:0 1px 3px rgba(0,0,0,.10); }
+  /* Die Zeichen tragen sonst vertical-align:-2px, damit sie in einer Textzeile
+     auf der Schriftlinie sitzen. In einem Kreis ist das genau falsch: dort
+     zaehlt die Mitte, nicht die Schriftlinie. */
+  .k-marke .ic, .k-marke .ic-farbe, .k-marke svg { display:block; vertical-align:0; margin:0; }
+  .k-marke .ic-farbe { line-height:0; }
   .k-felder { display:flex; gap:26px; margin-top:15px; }
   .k-lab { display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:.14em;
            text-transform:uppercase; color:var(--muted-hell); margin-bottom:4px; }
@@ -380,16 +385,41 @@
   .rowbtns.erste { margin-top:20px; }
   /* Kopf: Symbol und Titel auf einer Grundlinie. Das Symbol traegt den Tag und
      oeffnet dessen Auswahl — deshalb sitzt es dort, wo es etwas aussagt. */
-  .d-kopf { display:flex; align-items:flex-start; gap:11px; }
-  .d-tag { flex:0 0 auto; padding:2px 0 0; background:none; border:none;
-           color:var(--muted); line-height:0; }
-  .d-tag.leer { color:var(--muted-hell); opacity:.55; }
-  .d-tag .ic { margin-right:0; vertical-align:0; }
-  .d-kopf #dTitle { flex:1; min-width:0; }
-  /* Status und Faelligkeit nebeneinander statt untereinander */
-  .rowbtns.zwei { flex-direction:row; gap:0; border-bottom:1px solid var(--line-zart); }
-  .rowbtns.zwei .pick { flex:1; border-bottom:none; }
-  .rowbtns.zwei .pick + .pick { border-left:1px solid var(--line-zart); padding-left:14px; }
+  /* ---- Der Kopf des Detailfensters ist die Karte ------------------------
+     Auf der Liste liegt eine Karte flach. Hier ist sie herausgenommen — sie
+     schwebt, und ein Lichtstreifen zieht ueber sie hinweg. Die Werte darauf
+     sind Knoepfe: antippen oeffnet Datum bzw. Status. */
+  .d-karte { position:relative; border-radius:15px; padding:18px 18px 15px;
+             margin:0 0 20px; border:1px solid var(--karte-rand);
+             box-shadow:var(--karte-hoch), var(--karte-kante);
+             animation:dSchweben 7s ease-in-out infinite; overflow:hidden; }
+  .d-karte:after { content:""; position:absolute; inset:0; pointer-events:none;
+                   background:linear-gradient(115deg, rgba(255,255,255,0) 34%,
+                              var(--glanzband) 47%, var(--glanzband-2) 53%,
+                              rgba(255,255,255,0) 66%);
+                   background-size:280% 280%; background-position:100% 0%;
+                   animation:dLicht 9s ease-in-out infinite alternate; }
+  .d-karte > * { position:relative; z-index:1; }
+  @keyframes dSchweben {
+    0%,100% { transform:translateY(1.5px) rotate(.12deg); }
+    50%     { transform:translateY(-1.5px) rotate(-.12deg); }
+  }
+  @keyframes dLicht { from { background-position:108% -8%; } to { background-position:-8% 108%; } }
+  .d-karte #dTitle { flex:1 1 auto; min-width:0; border:none; background:none; padding:0;
+                     font-family:inherit; font-size:19px; font-weight:700;
+                     letter-spacing:-.015em; line-height:1.25; color:var(--ink);
+                     resize:none; overflow:hidden; }
+  .d-karte #dTitle:focus { outline:none; }
+  /* Die Werte sind antippbar. Die Haarlinie sagt das, ohne aus der Karte ein
+     Formular zu machen. */
+  .d-karte .k-wert { background:none; border:none; border-bottom:1px solid var(--karte-rand);
+                     padding:0 0 4px; width:100%; text-align:left; border-radius:0; }
+  .d-karte .k-marke { background:var(--karte-marke); }
+  .d-karte .k-marke.leer { opacity:.55; }
+  @media (prefers-reduced-motion: reduce) {
+    .d-karte { animation:none; }
+    .d-karte:after { animation:none; opacity:.55; }
+  }
   .f-label:first-child { margin-top:0; }
   #dTitle {
     width:100%; border:none; background:none; font-size:22px; font-weight:400;
@@ -764,6 +794,8 @@
       r.style.setProperty("--karte-rand", "rgba(255,255,255,.08)");
       r.style.setProperty("--karte-schatten",
         "0 1px 2px rgba(0,0,0,.50), 0 3px 6px -1px rgba(0,0,0,.34), 3px 12px 26px -10px rgba(0,0,0,.46)");
+      r.style.setProperty("--karte-hoch",
+        "0 2px 4px rgba(0,0,0,.54), 0 5px 10px -2px rgba(0,0,0,.40), 6px 24px 44px -14px rgba(0,0,0,.58)");
       r.style.setProperty("--karte-kante",
         "inset 0 1px 0 rgba(255,255,255,.16), inset 1px 0 0 rgba(255,255,255,.07), "
         + "inset -1px 0 0 rgba(255,255,255,.07), inset 0 -1px 0 rgba(0,0,0,.42), "
@@ -779,6 +811,8 @@
       r.style.setProperty("--karte-rand", "rgba(0,0,0,.055)");
       r.style.setProperty("--karte-schatten",
         "0 1px 2px rgba(0,0,0,.16), 0 2px 4px -1px rgba(0,0,0,.10), 3px 10px 22px -10px rgba(0,0,0,.22)");
+      r.style.setProperty("--karte-hoch",
+        "0 2px 4px rgba(0,0,0,.18), 0 4px 8px -2px rgba(0,0,0,.12), 6px 20px 38px -14px rgba(0,0,0,.28)");
       r.style.setProperty("--karte-kante",
         "inset 0 1px 0 rgba(255,255,255,.95), inset 1px 0 0 rgba(255,255,255,.45), "
         + "inset -1px 0 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0,0,0,.13), "
@@ -2497,13 +2531,30 @@
     // der die Tag-Auswahl oeffnet. Ohne Tag ein blasses Platzhalter-Zeichen,
     // damit die Tippflaeche bleibt und der Titel nicht springt.
     var tagSym = (d.tags && d.tags.length) ? iconFuerTag(d.tags[0], 19) : icon("marke", 19);
-    var html = '<div class="d-kopf">'
-      +   '<button class="d-tag'+((d.tags&&d.tags.length)?"":" leer")+'" id="dTagsBtn" aria-label="Tags">'+tagSym+'</button>'
-      +   '<textarea id="dTitle" rows="1" placeholder="Titel des Tickets">'+esc(d.title)+'</textarea>'
-      + '</div>'
-      + '<div class="rowbtns erste zwei">'
-      +   '<button class="pick" id="dStatus"><span class="dot" style="width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:'+sc+'"></span><span class="lbl">'+esc(statusLabel(d.status))+'</span></button>'
-      +   '<button class="pick" id="dDate"><span class="lbl">'+esc(fmtDue(d.dueDate))+'</span></button>'
+    // Der Kopf IST die Karte — dieselbe wie in der Liste, nur beschreibbar.
+    // Sie schwebt und zeigt ein wanderndes Licht: auf der Liste liegt eine
+    // Karte, hier ist sie herausgenommen und wird gehalten.
+    var farbe = (d.tags && d.tags.length && TAG_COLOR[d.tags[0]]) ? TAG_COLOR[d.tags[0]] : "var(--accent)";
+    var stD = t ? subStats(t) : { done:0, total:0 };
+    var standD = stD.total ? (stD.done+"/"+stD.total+" erledigt") : "—";
+    var breiteD = stD.total ? Math.round(stD.done/stD.total*100) : 6;
+    var dd = kartenDatum(d.dueDate);
+    var html = '<div class="d-karte karte-flaeche" id="dKarte" style="--k-farbe:'+farbe+'">'
+      +   '<div class="k-kopf">'
+      +     '<textarea id="dTitle" class="k-titel" rows="1" placeholder="Titel des Tickets">'+esc(d.title)+'</textarea>'
+      +     '<button class="k-marke d-tag'+((d.tags&&d.tags.length)?"":" leer")+'" id="dTagsBtn" aria-label="Tags" style="color:'+farbe+'">'+tagSym+'</button>'
+      +   '</div>'
+      +   '<div class="k-felder">'
+      +     '<div><span class="k-lab">Fällig</span>'
+      +       '<button class="k-wert '+dd.cls+'" id="dDate">'+esc(dd.txt)+'</button></div>'
+      +     '<div><span class="k-lab">Status</span>'
+      +       '<button class="k-wert" id="dStatus">'+esc(statusLabel(d.status))+'</button></div>'
+      +   '</div>'
+      +   '<div class="k-fuss">'
+      +     '<div class="k-fort"><div class="k-stand">'+esc(standD)+'</div>'
+      +     '<div class="k-balken"><i style="width:'+breiteD+'%'+(stD.total?"":";opacity:.35")+'"></i></div></div>'
+      +     '<span class="k-doppel"><u></u><i></i></span>'
+      +   '</div>'
       + '</div>';
 
     // Unteraufgaben — nur bei bestehenden Tickets, sonst fehlt die ticket_id
