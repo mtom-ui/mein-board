@@ -202,8 +202,14 @@
               padding:0 22px; color:#fff; opacity:0; }
   .swipe-bg.erledigt { background:#6E9887; justify-content:flex-start; }
   .swipe-bg.spaeter  { background:var(--accent); justify-content:flex-end; }
+  /* Jede Karte traegt einen Hauch ihrer eigenen Kuerzelfarbe — 6 %, mehr
+     nicht: bei 10 % faellt der Titel unter die eigene Grenze von 7:1. Die
+     erste Zeile ist der Rueckfall fuer Browser ohne color-mix. */
   .karte-flaeche, .card {
     background:linear-gradient(152deg, var(--karte-1) 0%, var(--karte-2) 100%);
+    background:linear-gradient(152deg,
+               color-mix(in srgb, var(--k-farbe, transparent) 6%, var(--karte-1)) 0%,
+               color-mix(in srgb, var(--k-farbe, transparent) 6%, var(--karte-2)) 100%);
     box-shadow:var(--karte-kante); }
   .card { display:block; padding:15px 17px 13px; position:relative; }
   /* Der Glanz kommt von links oben — aus derselben Richtung wie der
@@ -836,7 +842,7 @@
       r.style.setProperty("--karte-glanz", ".55");
       /* Wie am Desktop: fetter Titel in reiner Textfarbe kam auf 11,3 bis 17,2
          zu 1. Um 15 % zum Grund aufgehellt bleiben 7,1 bis 11,2. */
-      r.style.setProperty("--karte-tinte", mixHex(b.ink, b.bg, 0.15));
+      r.style.setProperty("--karte-tinte", mixHex(b.ink, b.bg, 0.10));
       r.style.setProperty("--karte-rille", "rgba(0,0,0,.11)");
       r.style.setProperty("--glanzband", "rgba(255,255,255,.42)");
       r.style.setProperty("--glanzband-2", "rgba(255,255,255,.10)");
