@@ -776,34 +776,34 @@
      Wortgleich mit der Desktop-Fassung, damit beide gleich aussehen. */
   var PRESETS = [
     { name:"Warm Sand",
-      light:{ bg:"#FDF2E3", ink:"#253B44", accent:"#A94E1B" },
+      light:{ bg:"#F2E9DB", ink:"#253B44", accent:"#A94E1B" },
       dark: { bg:"#191F22", ink:"#E9E4D8", accent:"#E2884A" } },
     { name:"Cool Slate",
-      light:{ bg:"#EEF2F5", ink:"#1E2A33", accent:"#20607A" },
+      light:{ bg:"#E4E8EB", ink:"#1E2A33", accent:"#20607A" },
       dark: { bg:"#151B21", ink:"#DCE4EA", accent:"#6FB6D4" } },
     { name:"Sage",
-      light:{ bg:"#EDF1E9", ink:"#22301F", accent:"#9A4A22" },
+      light:{ bg:"#E3E7DF", ink:"#22301F", accent:"#9A4A22" },
       dark: { bg:"#161C15", ink:"#E1E8DC", accent:"#D98A5A" } },
     { name:"Plum",
-      light:{ bg:"#F3EEF3", ink:"#2A2230", accent:"#7A3D7E" },
+      light:{ bg:"#E9E4E9", ink:"#2A2230", accent:"#7A3D7E" },
       dark: { bg:"#1A151C", ink:"#E7DFE9", accent:"#C08FC4" } },
     { name:"Navy",
-      light:{ bg:"#EDF1F7", ink:"#1A2333", accent:"#2C4E88" },
+      light:{ bg:"#E2E7ED", ink:"#1A2333", accent:"#2C4E88" },
       dark: { bg:"#12161F", ink:"#DDE3EE", accent:"#8AA9DC" } },
     { name:"Cardinal",
-      light:{ bg:"#F6EEEE", ink:"#2B1E1E", accent:"#A81E2E" },
+      light:{ bg:"#ECE4E4", ink:"#2B1E1E", accent:"#A81E2E" },
       dark: { bg:"#1B1315", ink:"#EBDEDE", accent:"#E8737F" } },
     // Gruen als AKZENT — "Sage" hat dagegen einen gruenen GRUND mit
     // Terrakotta-Akzent. Der Grund ist hier tiefer, sonst saehen die beiden
     // nebeneinander wie Dubletten aus.
     { name:"Pine",
-      light:{ bg:"#E4ECE5", ink:"#1C2A22", accent:"#2A6440" },
+      light:{ bg:"#DAE2DB", ink:"#1C2A22", accent:"#2A6440" },
       dark: { bg:"#121815", ink:"#DCE8E0", accent:"#7CC49A" } },
     // Tiefes Waldgruen mit Limette. Lebt im dunklen Modus — hell ist die
     // gedaempfte Entsprechung, weil Limette auf hellem Grund auf 1,3:1 kommt
     // und dort keinen Text tragen kann.
     { name:"Fern",
-      light:{ bg:"#EDF2DE", ink:"#1B2A1C", accent:"#4C6B1F" },
+      light:{ bg:"#E2E8D4", ink:"#1B2A1C", accent:"#4C6B1F" },
       dark: { bg:"#26493A", ink:"#EAF3E6", accent:"#DCEE9A" } }
   ];
 
@@ -857,8 +857,8 @@
       r.style.setProperty("--glanzband", "rgba(255,255,255,.20)");
       r.style.setProperty("--glanzband-2", "rgba(255,255,255,.05)");
     } else {
-      r.style.setProperty("--karte-1", mixHex(b.bg,"#ffffff",0.94));
-      r.style.setProperty("--karte-2", mixHex(b.bg,"#ffffff",0.58));
+      r.style.setProperty("--karte-1", mixHex(b.bg,"#ffffff",0.965));
+      r.style.setProperty("--karte-2", mixHex(b.bg,"#ffffff",0.70));
       r.style.setProperty("--karte-marke", mixHex(b.bg,"#ffffff",0.99));
       /* Wie am Desktop: im Hellmodus war die Physik halb so stark, und eine
          weisse Lichtkante auf fast weisser Karte sieht niemand. Hier dunkelt
