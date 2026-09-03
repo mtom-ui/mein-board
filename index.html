@@ -195,43 +195,35 @@
      muss beschneiden, damit die Wischflaechen darunter verborgen bleiben, und
      wuerde einen Schatten der Karte mit abschneiden. Die Kante ist ein
      Innenschatten und wird davon nicht beruehrt. */
-  .swipe { position:relative; overflow:hidden; margin:0 0 12px;
-           border-radius:15px; box-shadow:var(--karte-schatten);
-           transition:transform .07s ease, box-shadow .07s ease; }
+  /* Keine Karten mehr: der Eintrag steht auf dem Blatt, er liegt nicht darauf.
+     Der Wischbehaelter beschneidet weiterhin — die Flaechen fuer "Erledigt"
+     und "Spaeter" muessen darunter verborgen bleiben. */
+  .swipe { position:relative; overflow:hidden; margin:0; }
+  .swipe + .swipe .card:before { content:""; position:absolute; left:16px; right:16px; top:0;
+                                 height:1px; background:var(--line-zart); }
   .swipe-bg { position:absolute; inset:0; display:flex; align-items:center;
               padding:0 22px; color:#fff; opacity:0; }
   .swipe-bg.erledigt { background:#6E9887; justify-content:flex-start; }
   .swipe-bg.spaeter  { background:var(--accent); justify-content:flex-end; }
-  /* Jede Karte traegt einen Hauch ihrer eigenen Kuerzelfarbe — 6 %, mehr
-     nicht: bei 10 % faellt der Titel unter die eigene Grenze von 7:1. Die
-     erste Zeile ist der Rueckfall fuer Browser ohne color-mix. */
-  .karte-flaeche, .card {
-    background:linear-gradient(152deg, var(--karte-1) 0%, var(--karte-2) 100%);
-    background:linear-gradient(152deg,
-               color-mix(in srgb, var(--k-farbe, transparent) 6%, var(--karte-1)) 0%,
-               color-mix(in srgb, var(--k-farbe, transparent) 6%, var(--karte-2)) 100%);
-    box-shadow:var(--karte-kante); }
-  .card { display:block; padding:15px 17px 13px; position:relative; }
-  /* Der Glanz kommt von links oben — aus derselben Richtung wie der
-     Schattenversatz. Auf dem Handy wandert er nicht: es gibt keinen Zeiger,
-     dem er folgen koennte. */
-  .card:before { content:""; position:absolute; inset:0; pointer-events:none;
-                 background:linear-gradient(135deg, rgba(255,255,255,.95) 0%,
-                            rgba(255,255,255,.22) 30%, rgba(255,255,255,0) 58%);
-                 opacity:var(--karte-glanz); }
-  .card > * { position:relative; }
+  /* Eine Haarlinie links gibt dem Eintrag seine Achse — dieselbe Sprache wie
+     auf dem Desktop. Die Kuerzelfarbe steht im Zeichen, nicht in der Flaeche. */
+  .card { display:block; position:relative; background:none;
+          padding:14px 16px 14px 15px; border-left:2px solid transparent;
+          transition:border-color .2s ease, background .12s ease; }
   .card.zieht { transition:none; }
   .card.federt { transition:transform .22s cubic-bezier(.25,.8,.3,1); }
-  /* Druck: kurzer, harter Weg wie bei einer steifen Karte auf dem Tisch.
-     Gedrueckt wird der ganze Behaelter, sonst bliebe der Schatten stehen. */
-  .swipe.gedrueckt { transform:scale(.972);
-                     box-shadow:0 1px 1px rgba(0,0,0,.24); }
+  /* Druck: eine ruhige Toenung statt einer Bewegung. Am Finger ist die
+     Rueckmeldung wichtig, die Bewegung war die Karte. */
+  .swipe.gedrueckt .card { background:var(--chip); border-left-color:var(--k-farbe, var(--accent)); }
 
   /* ---- Innenleben, 1:1 wie am Desktop ---- */
   .k-kopf { display:flex; align-items:flex-start; gap:11px; }
   .k-titel { flex:1 1 auto; font-size:15.5px; font-weight:700; line-height:1.3;
              letter-spacing:-.012em; overflow-wrap:anywhere; hyphens:auto;
              color:var(--karte-tinte, var(--ink)); }
+  /* Nur noch im Detailkopf: dort ist der Kreis die Tippflaeche fuer die
+     Kuerzelauswahl und traegt damit einen Zweck. */
+  .li-marke { flex:0 0 auto; display:inline-flex; align-items:center; margin-top:2px; }
   .k-marke { flex:0 0 auto; width:32px; height:32px; border-radius:50%;
              display:flex; align-items:center; justify-content:center;
              background:var(--karte-marke); border:1px solid var(--karte-rand);
@@ -455,71 +447,18 @@
   .rowbtns.erste { margin-top:20px; }
   /* Kopf: Symbol und Titel auf einer Grundlinie. Das Symbol traegt den Tag und
      oeffnet dessen Auswahl — deshalb sitzt es dort, wo es etwas aussagt. */
-  /* ---- Der Kopf des Detailfensters ist die Karte ------------------------
-     Auf der Liste liegt eine Karte flach. Hier ist sie herausgenommen — sie
-     schwebt, und ein Lichtstreifen zieht ueber sie hinweg. Die Werte darauf
-     sind Knoepfe: antippen oeffnet Datum bzw. Status. */
-  .d-karte { position:relative; border-radius:15px; padding:18px 18px 15px;
-             margin:0 0 20px; border:1px solid var(--karte-rand);
-             box-shadow:var(--karte-hoch), var(--karte-kante);
-             animation:dSchweben 7s ease-in-out infinite; overflow:hidden; }
-  .d-karte:after { content:""; position:absolute; inset:0; pointer-events:none;
-                   background:linear-gradient(115deg, rgba(255,255,255,0) 34%,
-                              var(--glanzband) 47%, var(--glanzband-2) 53%,
-                              rgba(255,255,255,0) 66%);
-                   background-size:280% 280%; background-position:-8% 108%;
-                   animation:dLicht 9s ease-in-out infinite alternate; }
-  .d-karte > * { position:relative; z-index:1; }
-  @keyframes dSchweben {
-    0%,100% { transform:translateY(1.5px) rotate(.12deg); }
-    50%     { transform:translateY(-1.5px) rotate(-.12deg); }
-  }
-  /* Der Durchzug beim Oeffnen laeuft jetzt WIRKLICH ueber die Karte: vorher
-     ging er von 130%/-30% auf 108%/-8% — beides ausserhalb der Flaeche. Zu
-     sehen war davon nichts, und der Betrachter wartete, bis der langsame
-     Zyklus das Licht Sekunden spaeter hereinschob. Die Ruhebewegung setzt
-     dort an, wo der Durchzug endet, damit es keinen Sprung gibt. */
-  @keyframes dLicht { from { background-position:-8% 108%; } to { background-position:108% -8%; } }
-  /* Der Moment, in dem die Karte aus der Liste genommen wird: sie steigt auf,
-     und das Licht zieht einmal schnell durch. Danach geht sie in die ruhige
-     Schwebebewegung ueber. Wie am Desktop. */
-  .d-karte.eintritt { animation: dEintritt .5s cubic-bezier(.2,.8,.25,1) both,
-                                 dSchweben 7s ease-in-out .5s infinite; }
-  .d-karte.eintritt:after { animation: dDurchzug .9s cubic-bezier(.25,.7,.3,1) both,
-                                       dLicht 9s ease-in-out .9s infinite alternate; }
-  @keyframes dEintritt {
-    from { transform:translateY(16px) scale(.96); box-shadow:var(--karte-schatten), var(--karte-kante); }
-    to   { transform:translateY(1.5px) scale(1);  box-shadow:var(--karte-hoch), var(--karte-kante); }
-  }
-  @keyframes dDurchzug { from { background-position:140% -40%; } to { background-position:-8% 108%; } }
-  /* Handy-Entsprechung zum wandernden Glanz: am Desktop folgt er dem Zeiger,
-     den es hier nicht gibt. Stattdessen zieht beim Druck ein Lichtband durch. */
-  .card:after { content:""; position:absolute; inset:0; pointer-events:none;
-                background:linear-gradient(115deg, rgba(255,255,255,0) 30%,
-                           var(--glanzband) 48%, rgba(255,255,255,0) 66%);
-                background-size:250% 250%; background-position:100% 0%;
-                opacity:0; transition:opacity .18s ease, background-position .55s ease; }
-  .swipe.gedrueckt .card:after { opacity:1; background-position:0% 100%; }
-  @media (prefers-reduced-motion: reduce) {
-    .d-karte, .d-karte.eintritt { animation:none; }
-    .d-karte:after, .d-karte.eintritt:after { animation:none; opacity:.55; }
-    .card:after { transition:none; }
-  }
-  .d-karte #dTitle { flex:1 1 auto; min-width:0; border:none; background:none; padding:0;
+  /* Der Kopf des Detailfensters ist eine Kachel wie die anderen. Titel, Frist
+     und Kuerzel stehen darin; die Werte sind antippbar, die Haarlinie sagt es,
+     ohne aus der Kachel ein Formular zu machen. */
+  .ka-kopf #dTitle { flex:1 1 auto; min-width:0; border:none; background:none; padding:0;
                      font-family:inherit; font-size:19px; font-weight:700;
                      letter-spacing:-.015em; line-height:1.25; color:var(--ink);
                      resize:none; overflow:hidden; }
-  .d-karte #dTitle:focus { outline:none; }
-  /* Die Werte sind antippbar. Die Haarlinie sagt das, ohne aus der Karte ein
-     Formular zu machen. */
-  .d-karte .k-wert { background:none; border:none; border-bottom:1px solid var(--karte-rand);
+  .ka-kopf #dTitle:focus { outline:none; }
+  .ka-kopf .k-wert { background:none; border:none; border-bottom:1px solid var(--rahmen);
                      padding:0 0 4px; width:100%; text-align:left; border-radius:0; }
-  .d-karte .k-marke { background:var(--karte-marke); }
-  .d-karte .k-marke.leer { opacity:.55; }
-  @media (prefers-reduced-motion: reduce) {
-    .d-karte { animation:none; }
-    .d-karte:after { animation:none; opacity:.55; }
-  }
+  .ka-kopf .k-marke { background:none; border:1px solid var(--rahmen); }
+  .ka-kopf .k-marke.leer { opacity:.55; }
   .f-label:first-child { margin-top:0; }
   #dTitle {
     width:100%; border:none; background:none; font-size:22px; font-weight:400;
@@ -887,57 +826,31 @@
        Material ist. Drei Schattenebenen: Kontakt, Zwischenstufe, Umgebung.
        Die Kante laeuft rundum, nicht nur oben: eine Karte ist an allen vier
        Seiten geschnitten. */
+    /* Was von der Kartengestaltung geblieben ist: die Flaeche der Kacheln, der
+       Kreis um das Kuerzelzeichen, die Rille des Fortschrittsbalkens und der
+       leicht gedaempfte Text darauf. Schatten, Kanten und Glanz sind weg — es
+       gibt keine Karten mehr, nur Flaechen.
+
+       Bei "Fern" ist der dunkle Grund selbst schon hell (relative Leuchtdichte
+       .055 gegen .008-.013 bei den uebrigen). Dort wird die Kachel ABGEDUNKELT
+       statt aufgehellt, sonst fielen sechs der zwoelf Kuerzelfarben darauf
+       unter 4,5:1. */
     if (DARK){
-      /* Wie am Desktop: auf einem dunklen Grund, der schon hell ist ("Fern",
-         relative Leuchtdichte .055 gegen .008-.013 bei den uebrigen), wird die
-         Karte ABGEDUNKELT statt aufgehellt. Sonst fielen sechs der zwoelf
-         Kuerzelfarben darauf unter 4,5:1. Als Gegenstand traegt sie die Kante
-         und der Schatten, nicht die Helligkeit. */
       var hellerGrund = relLum(b.bg) > 0.03;
       var ton = hellerGrund ? "#000000" : "#ffffff";
       r.style.setProperty("--karte-1", mixHex(b.bg, ton, 0.09));
-      r.style.setProperty("--karte-2", mixHex(b.bg, ton, hellerGrund ? 0.14 : 0.035));
       r.style.setProperty("--karte-marke", mixHex(b.bg, "#ffffff", hellerGrund ? 0.045 : 0.14));
       r.style.setProperty("--karte-rand", "rgba(255,255,255,.08)");
-      r.style.setProperty("--karte-schatten",
-        "0 1px 2px rgba(0,0,0,.50), 0 3px 6px -1px rgba(0,0,0,.34), 3px 12px 26px -10px rgba(0,0,0,.46)");
-      r.style.setProperty("--karte-hoch",
-        "0 2px 4px rgba(0,0,0,.54), 0 5px 10px -2px rgba(0,0,0,.40), 6px 24px 44px -14px rgba(0,0,0,.58)");
-      r.style.setProperty("--karte-kante",
-        "inset 0 1px 0 rgba(255,255,255,.16), inset 1px 0 0 rgba(255,255,255,.07), "
-        + "inset -1px 0 0 rgba(255,255,255,.07), inset 0 -1px 0 rgba(0,0,0,.42), "
-        + "inset 0 0 22px rgba(0,0,0,.16)");
-      r.style.setProperty("--karte-glanz", ".07");
       r.style.setProperty("--karte-tinte", b.ink);
       r.style.setProperty("--karte-rille", "rgba(255,255,255,.18)");
-      r.style.setProperty("--glanzband", "rgba(255,255,255,.20)");
-      r.style.setProperty("--glanzband-2", "rgba(255,255,255,.05)");
     } else {
       r.style.setProperty("--karte-1", mixHex(b.bg,"#ffffff",0.965));
-      r.style.setProperty("--karte-2", mixHex(b.bg,"#ffffff",0.70));
       r.style.setProperty("--karte-marke", mixHex(b.bg,"#ffffff",0.99));
-      /* Wie am Desktop: im Hellmodus war die Physik halb so stark, und eine
-         weisse Lichtkante auf fast weisser Karte sieht niemand. Hier dunkelt
-         die Kante, und der Schatten traegt allein. */
       r.style.setProperty("--karte-rand", "rgba(0,0,0,.10)");
-      /* Kraeftiger, seit der Glanz weg ist: der Schatten traegt hier allein. */
-      r.style.setProperty("--karte-schatten",
-        "0 1px 2px rgba(0,0,0,.26), 0 4px 8px -1px rgba(0,0,0,.20), 5px 15px 32px -10px rgba(0,0,0,.40)");
-      r.style.setProperty("--karte-hoch",
-        "0 2px 5px rgba(0,0,0,.30), 0 8px 16px -2px rgba(0,0,0,.26), 8px 28px 50px -14px rgba(0,0,0,.50)");
-      r.style.setProperty("--karte-kante",
-        "inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(0,0,0,.16), "
-        + "inset 1px 0 0 rgba(0,0,0,.05), inset -1px 0 0 rgba(0,0,0,.05), "
-        + "inset 0 0 26px rgba(0,0,0,.055)");
-      /* Glanz im Hellmodus weg: er hellte eine fast weisse Karte auf fast
-         weissem Grund noch weiter auf und arbeitete gegen den Schatten. */
-      r.style.setProperty("--karte-glanz", "0");
-      /* Wie am Desktop: fetter Titel in reiner Textfarbe kam auf 11,3 bis 17,2
-         zu 1. Um 15 % zum Grund aufgehellt bleiben 7,1 bis 11,2. */
+      /* Fetter Titel in reiner Textfarbe kam auf 11,3 bis 17,2 zu 1 — hart bei
+         vielen Eintraegen. Um 10 % zum Grund aufgehellt bleiben ueber 7. */
       r.style.setProperty("--karte-tinte", mixHex(b.ink, b.bg, 0.10));
       r.style.setProperty("--karte-rille", "rgba(0,0,0,.11)");
-      r.style.setProperty("--glanzband", "rgba(255,255,255,.16)");
-      r.style.setProperty("--glanzband-2", "rgba(255,255,255,.04)");
     }
     var mc = document.getElementById("themeColor");
     if (mc) mc.setAttribute("content", b.bg);
@@ -1899,8 +1812,10 @@
   function cardHtml(t, mitDatum){
     var tag = (t.tags||[]).filter(function(tg){ return TAGS.indexOf(tg)>=0; })[0] || (t.tags||[])[0] || "";
     var farbe = ticketFarbe(t);
-    var marke = '<span class="k-marke" style="color:'+farbe+'">'
-              + (ticketIcon(t, 16) || icon("marke", 16)) + '</span>';
+    // Kein Kreis mehr um das Zeichen: der Kreis war Teil der Karte. Auf einer
+    // flachen Zeile steht das Zeichen fuer sich, in der Farbe seines Kuerzels.
+    var marke = '<span class="li-marke" style="color:'+farbe+'">'
+              + (ticketIcon(t, 17) || icon("marke", 17)) + '</span>';
     var d = kartenDatum(t.dueDate);
     var felder = '<div class="k-felder">'
       + '<div><span class="k-lab">Fällig</span><span class="k-wert '+d.cls+'">'+esc(d.txt)+'</span></div>'
@@ -1913,8 +1828,7 @@
     var fuss = '<div class="k-fuss">'
       + '<span class="k-status'+(t.status==="Blocked"?" blockiert":"")+'">'+esc(statusLabel(t.status))+'</span>'
       + '<div class="k-fort"><div class="k-stand"'+(st.total?"":' title="ohne Unteraufgaben"')+'>'+esc(stand)+'</div>'
-      + '<div class="k-balken"><i style="width:'+breite+'%'+(st.total?"":";opacity:.35")+'"></i></div></div>'
-      + '<span class="k-doppel"><u></u><i></i></span></div>';
+      + '<div class="k-balken"><i style="width:'+breite+'%'+(st.total?"":";opacity:.35")+'"></i></div></div></div>';
     return '<div class="swipe" data-id="'+t.id+'">'
       + '<div class="swipe-bg erledigt"></div><div class="swipe-bg spaeter"></div>'
       + '<div class="card" data-id="'+t.id+'" style="--k-farbe:'+farbe+'">'
@@ -2593,10 +2507,6 @@
     $("dSave").textContent = "Sichern";
     renderDetail();
     $("detail").classList.add("on");
-    // Das Fenster bleibt im Dokument stehen, die Animation liefe also nur beim
-    // allerersten Mal. Klasse abnehmen, Umbruch erzwingen, neu setzen.
-    var dk = document.getElementById("dKarte");
-    if (dk){ dk.classList.remove("eintritt"); void dk.offsetWidth; dk.classList.add("eintritt"); }
     // Die Titelhoehe erst messen, wenn der Dialog im Bild ist — ausserhalb
     // liefert scrollHeight einen zu grossen Wert und reisst eine Luecke auf.
     requestAnimationFrame(function(){ var ta = $("dTitle"); if (ta) autoGrow(ta); });
