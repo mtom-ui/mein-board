@@ -394,6 +394,62 @@
   .full-hdr button:disabled { opacity:.4; }
   .full-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
                padding:16px 16px calc(28px + var(--bot)); }
+  /* ===== Kacheln im Ticket ==============================================
+     Wie am Desktop, nur untereinander. Milchglas gibt es hier NICHT: das
+     Detailfenster liegt vollflaechig auf dem Grund, es ist nichts dahinter,
+     was durchscheinen koennte. Statt Glas eine leicht abgesetzte Flaeche. */
+  .kachel { position:relative; background:var(--karte-1); border:1px solid var(--rahmen);
+            border-radius:14px; padding:14px 15px; margin:0 0 12px;
+            display:flex; flex-direction:column; }
+  .kachel > .f-label { margin-top:0; }
+  .kachel:last-child { margin-bottom:0; }
+  .ka-kopf { padding:16px 15px; }
+  .ka-tun { gap:10px; }
+  .ka-tun .wide { margin:0; }
+
+  /* ---- Der Weg des Tickets als Balkenreihe ---- */
+  /* Sechs Stufen nebeneinander ergeben auf einem Telefon je 50 px — daraus
+     wird "ALS NAE…" und "abgesch…". Zwei Reihen zu dritt geben jeder Stufe
+     genug Breite fuer ihr Wort. Der Desktop hat vier Stufen und kann sie in
+     einer Reihe zeigen. */
+  .pfad { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px 10px; margin-top:16px; }
+  .pfad-e { background:none; border:none; border-radius:0; padding:0; text-align:left;
+            min-width:0; -webkit-appearance:none; }
+  .pfad-bar { display:block; height:14px; border-radius:0; border:1px solid var(--rahmen);
+              background:none; transition:background .25s ease, border-color .25s ease; }
+  .pfad-e.erreicht .pfad-bar { background:var(--accent); border-color:var(--accent); }
+  /* Schraffur aus der Warnfarbe selbst — stimmt damit in jeder Palette. */
+  .pfad-e.stoerung .pfad-bar { border-color:var(--overdue); background-color:transparent;
+    background-image:repeating-linear-gradient(-45deg, var(--overdue) 0 4px, transparent 4px 9px); }
+  /* "Wartet auf Input" passt auch in 97 px nicht in eine Zeile. Umbrechen
+     statt abschneiden: ein halbes Wort sagt weniger als zwei Zeilen. */
+  .pfad-wort { display:block; margin-top:8px; font-family:var(--mono); font-size:8.5px;
+               letter-spacing:.12em; text-transform:uppercase; color:var(--muted-hell);
+               line-height:1.35; }
+  .pfad-e.erreicht .pfad-wort { color:var(--ink); }
+  .pfad-e.jetzt .pfad-wort { font-weight:700; }
+  .pfad-e.stoerung .pfad-wort { color:var(--overdue); font-weight:700; }
+  .pfad-sub { display:block; margin-top:3px; font-size:10px; color:var(--muted-hell);
+              white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pfad-e.stoerung .pfad-sub { color:var(--overdue); }
+
+  /* ---- Der Verlauf ---- */
+  .vl-e { position:relative; padding:0 0 13px 20px; }
+  .vl-e:last-child { padding-bottom:0; }
+  .vl-e::before { content:""; position:absolute; left:4px; top:13px; bottom:-2px;
+                  width:1px; background:var(--line); }
+  .vl-e:last-child::before { display:none; }
+  .vl-punkt { position:absolute; left:0; top:4px; width:9px; height:9px;
+              border-radius:50%; background:var(--muted-hell); }
+  .vl-e.jetzt .vl-punkt { background:var(--accent); }
+  .vl-e.halt .vl-punkt { background:var(--overdue); border-radius:2px; }
+  .vl-e.start .vl-punkt { background:none; box-shadow:inset 0 0 0 1px var(--muted-hell); }
+  .vl-was { display:block; font-size:14px; line-height:1.35; color:var(--ink); overflow-wrap:anywhere; }
+  .vl-e.halt .vl-was { color:var(--overdue); }
+  .vl-zeit { display:block; font-family:var(--mono); font-size:10.5px; letter-spacing:.04em;
+             color:var(--muted-hell); margin-top:2px; }
+  .vl-leer { font-size:12.5px; color:var(--muted-hell); }
+
   .f-label { font-size:9.5px; font-weight:400; text-transform:uppercase; letter-spacing:.15em;
              color:var(--muted-hell); margin:34px 0 10px; }
   .rowbtns.erste { margin-top:20px; }
@@ -2589,6 +2645,98 @@
     });
     $("tagOk").addEventListener("click", closeSheet);
   }
+  /* Die Zeitpunkte der Statuswechsel stehen im Verlauf-Blatt. Es wird EINMAL
+     je Sitzung geholt und danach im Speicher gehalten — bei jedem Ticket neu
+     zu fragen hiesse, jedes Oeffnen um eine Umleitung zu verlangsamen. */
+  var akteCache = null, akteLaeuft = null;
+  function akteLadenMobil(){
+    if (akteCache) return Promise.resolve(akteCache);
+    if (akteLaeuft) return akteLaeuft;
+    akteLaeuft = readTab(TAB_ACTIVITY).then(function(a){
+      akteCache = Array.isArray(a) ? a : []; akteLaeuft = null; return akteCache;
+    }).catch(function(){ akteCache = []; akteLaeuft = null; return akteCache; });
+    return akteLaeuft;
+  }
+  function statusZeitenMobil(id){
+    var z = {};
+    (akteCache||[]).forEach(function(a){
+      if (a.ticket_id !== id) return;
+      var art = a.type || "";
+      // Das Anlegen ist der Eintritt in den Anfangszustand — im Blatt steht es
+      // aber als eigene Art, nicht als Statuswechsel.
+      var ziel = art === "created" ? STATUSES[0]
+               : art === "status"  ? String(a.text||"").split("\u2192").pop().trim()
+               : "";
+      if (!ziel) return;
+      var ts = normTs(a.timestamp);
+      if (!z[ziel] || ts > z[ziel]) z[ziel] = ts;
+    });
+    return z;
+  }
+  function tageSeitMobil(ts){
+    var d = Math.max(0, Math.round((Date.now()-ts)/864e5));
+    return d === 0 ? "heute" : d + " T";
+  }
+  function renderPfadMobil(){
+    var box = document.getElementById("dPfad");
+    if (!box || !draft) return;
+    var zeiten = editing ? statusZeitenMobil(editing.id) : {};
+    var jetzt = STATUSES.indexOf(draft.status);
+    box.innerHTML = STATUSES.map(function(st, i){
+      var ts = zeiten[st];
+      var aktiv = st === draft.status;
+      var stoerung = st === "Blocked" && aktiv;
+      // Der Balken zeigt, wo das Ticket steht — nicht, wo es jemals war.
+      var erreicht = aktiv || (st !== "Blocked" && i < jetzt);
+      var cls = "pfad-e" + (erreicht ? " erreicht" : "") + (aktiv ? " jetzt" : "")
+              + (stoerung ? " stoerung" : "");
+      var sub = aktiv ? (ts ? "steht seit " + tageSeitMobil(ts) : "jetzt")
+              : erreicht ? "abgeschlossen" : "\u2014";
+      return '<button type="button" class="'+cls+'" data-status="'+esc(st)+'">'
+           +   '<span class="pfad-bar"></span>'
+           +   '<span class="pfad-wort">'+esc(statusLabel(st))+'</span>'
+           +   '<span class="pfad-sub">'+esc(sub)+'</span></button>';
+    }).join("");
+    [].forEach.call(box.querySelectorAll(".pfad-e"), function(b){
+      b.addEventListener("click", function(){
+        if (b.dataset.status === draft.status) return;
+        draft.status = b.dataset.status;
+        syncEditors();
+        renderPfadMobil(); renderVerlaufMobil(editing);
+      });
+    });
+  }
+  /* Der Verlauf: was diesem Ticket widerfahren ist. Neueste Bewegung oben —
+     das ist ein Protokoll, kein Weg. Den Weg zeigt der Kopf. */
+  function renderVerlaufMobil(t){
+    var box = document.getElementById("dChrono");
+    if (!box) return;
+    if (!t){ box.innerHTML = '<div class="vl-leer">Noch nichts passiert.</div>'; return; }
+    var e = [];
+    (akteCache||[]).forEach(function(a){
+      if (a.ticket_id !== t.id) return;
+      var ts = normTs(a.timestamp), art = a.type || "";
+      if (art === "created") e.push({ ts:ts, was:"angelegt", art:"start" });
+      else if (art === "status"){
+        var ziel = String(a.text||"").split("\u2192").pop().trim();
+        e.push({ ts:ts, was: statusLabel(ziel) || ziel, art: ziel === "Blocked" ? "halt" : "schritt" });
+      }
+    });
+    subListe(t).forEach(function(x){ if (x.done && +x.doneAt)
+      e.push({ ts:+x.doneAt, was:"abgehakt: " + (x.title||"Unteraufgabe"), art:"haken" }); });
+    (t.comments||[]).forEach(function(c){ if (+c.ts)
+      e.push({ ts:+c.ts, was:"Update geschrieben", art:"wort" }); });
+    e.sort(function(a,b){ return b.ts - a.ts; });
+    box.innerHTML = e.length
+      ? e.map(function(x,i){
+          return '<div class="vl-e '+x.art+(i?"":" jetzt")+'">'
+               + '<span class="vl-punkt"></span>'
+               + '<span class="vl-was">'+esc(x.was)+'</span>'
+               + '<span class="vl-zeit">'+esc(fmtWhen(x.ts))+'</span></div>';
+        }).join("")
+      : '<div class="vl-leer">Noch nichts passiert.</div>';
+  }
+
   function renderDetail(){
     var t = editing, d = draft;
     var sc = STATUS_COLORS[d.status] || ACCENT;
@@ -2596,15 +2744,13 @@
     // der die Tag-Auswahl oeffnet. Ohne Tag ein blasses Platzhalter-Zeichen,
     // damit die Tippflaeche bleibt und der Titel nicht springt.
     var tagSym = (d.tags && d.tags.length) ? iconFuerTag(d.tags[0], 19) : icon("marke", 19);
-    // Der Kopf IST die Karte — dieselbe wie in der Liste, nur beschreibbar.
-    // Sie schwebt und zeigt ein wanderndes Licht: auf der Liste liegt eine
-    // Karte, hier ist sie herausgenommen und wird gehalten.
     var farbe = (d.tags && d.tags.length && TAG_COLOR[d.tags[0]]) ? TAG_COLOR[d.tags[0]] : "var(--accent)";
-    var stD = t ? subStats(t) : { done:0, total:0 };
-    var standD = stD.total ? (stD.done+"/"+stD.total+" erledigt") : "—";
-    var breiteD = stD.total ? Math.round(stD.done/stD.total*100) : 6;
     var dd = kartenDatum(d.dueDate);
-    var html = '<div class="d-karte karte-flaeche" id="dKarte" style="--k-farbe:'+farbe+'">'
+    var kat = (d.tags && d.tags.length) ? d.tags[0] : "\u2014";
+
+    /* Der Kopf: Name, Kuerzel, Frist — darunter der Weg des Tickets als
+       Balkenreihe. Wie am Desktop, nur untereinander statt nebeneinander. */
+    var html = '<section class="kachel ka-kopf">'
       +   '<div class="k-kopf">'
       +     '<textarea id="dTitle" class="k-titel" rows="1" placeholder="Titel des Tickets">'+esc(d.title)+'</textarea>'
       +     '<button class="k-marke d-tag'+((d.tags&&d.tags.length)?"":" leer")+'" id="dTagsBtn" aria-label="Tags" style="color:'+farbe+'">'+tagSym+'</button>'
@@ -2612,29 +2758,31 @@
       +   '<div class="k-felder">'
       +     '<div><span class="k-lab">Fällig</span>'
       +       '<button class="k-wert '+dd.cls+'" id="dDate">'+esc(dd.txt)+'</button></div>'
-      +     '<div><span class="k-lab">Status</span>'
-      +       '<button class="k-wert" id="dStatus">'+esc(statusLabel(d.status))+'</button></div>'
+      +     '<div><span class="k-lab">Kategorie</span>'
+      +       '<span class="k-wert'+((d.tags&&d.tags.length)?"":" leer")+'">'+esc(kat)+'</span></div>'
       +   '</div>'
-      +   '<div class="k-fuss">'
-      +     '<div class="k-fort"><div class="k-stand">'+esc(standD)+'</div>'
-      +     '<div class="k-balken"><i style="width:'+breiteD+'%'+(stD.total?"":";opacity:.35")+'"></i></div></div>'
-      +     '<span class="k-doppel"><u></u><i></i></span>'
-      +   '</div>'
-      + '</div>';
+      +   '<div class="pfad" id="dPfad"></div>'
+      + '</section>';
+
+    if (t){
+      html += '<section class="kachel"><label class="f-label">Verlauf</label>'
+            + '<div class="chrono" id="dChrono"></div></section>';
+    }
 
     // Unteraufgaben — nur bei bestehenden Tickets, sonst fehlt die ticket_id
     if (t){
       var st = subStats(t);
-      html += '<div class="f-label">Unteraufgaben' + (st.total ? ' · ' + st.done + '/' + st.total : '') + '</div>'
+      html += '<section class="kachel"><label class="f-label">Unteraufgaben' + (st.total ? ' · ' + st.done + '/' + st.total : '') + '</label>'
             + '<div id="dSubs"></div>'
             + '<div class="sub-neu"><input id="dSubNeu" placeholder="Unteraufgabe hinzufügen" autocomplete="off">'
-            + '<button id="dSubAdd" aria-label="Hinzufügen">+</button></div>';
+            + '<button id="dSubAdd" aria-label="Hinzufügen">+</button></div></section>';
     }
 
-    html += '<div class="f-label">Beschreibung</div><div id="dDescWrap"><div id="dDesc"></div></div>';
+    html += '<section class="kachel"><label class="f-label">Beschreibung</label>'
+          + '<div id="dDescWrap"><div id="dDesc"></div></div></section>';
 
     if (t){
-      html += '<div class="f-label">Kommentare</div><div id="dComments">'
+      html += '<section class="kachel"><label class="f-label">Kommentare</label><div id="dComments">'
         + ((t.comments||[]).length
             ? t.comments.map(function(c){
                 return '<div class="cmt"><div class="when">'+esc(fmtWhen(c.ts))+'</div>'
@@ -2643,11 +2791,16 @@
             : "")
         + '</div>'
         + '<div class="cmt-box"><div id="dCmt"></div>'
-        + '<button class="wide" id="dCmtSend" disabled>Kommentar senden</button></div>'
-        + '<button class="wide done" id="dDone">Als erledigt markieren</button>'
-        + '<button class="wide del" id="dDel">Ticket löschen</button>';
+        + '<button class="wide" id="dCmtSend" disabled>Kommentar senden</button></div></section>'
+        + '<section class="kachel ka-tun">'
+        +   '<button class="wide done" id="dDone">Als erledigt markieren</button>'
+        +   '<button class="wide del" id="dDel">Ticket löschen</button></section>';
     }
     $("dBody").innerHTML = html;
+    renderPfadMobil(); renderVerlaufMobil(t);
+    akteLadenMobil().then(function(){
+      if (editing && t && editing.id === t.id){ renderPfadMobil(); renderVerlaufMobil(t); }
+    });
     wireDetail();
   }
 
@@ -2665,10 +2818,6 @@
     initRTE(desc, { placeholder:"Beschreibung … („- " + "␣" + "\" wird zur Aufzählung)" });
     rteSet(desc, draft.description);
 
-    $("dStatus").addEventListener("click", function(){
-      syncEditors();
-      statusSheet(draft.status, function(s){ draft.status = s; renderDetail(); });
-    });
     $("dDate").addEventListener("click", function(){
       syncEditors();
       dateSheet(draft.dueDate, function(v){ draft.dueDate = v; renderDetail(); });
