@@ -400,11 +400,9 @@
   .ka-tun .wide { margin:0; }
 
   /* ---- Der Weg des Tickets als Balkenreihe ---- */
-  /* Sechs Stufen nebeneinander ergeben auf einem Telefon je 50 px — daraus
-     wird "ALS NAE…" und "abgesch…". Zwei Reihen zu dritt geben jeder Stufe
-     genug Breite fuer ihr Wort. Der Desktop hat vier Stufen und kann sie in
-     einer Reihe zeigen. */
-  .pfad { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px 10px; margin-top:16px; }
+  /* Vier Stufen passen auf einem Telefon nebeneinander — je rund 78 px, genug
+     fuer "BLOCKIERT". Bei den frueheren sechs war das nicht so. */
+  .pfad { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-top:16px; }
   .pfad-e { background:none; border:none; border-radius:0; padding:0; text-align:left;
             min-width:0; -webkit-appearance:none; }
   .pfad-bar { display:block; height:14px; border-radius:0; border:1px solid var(--rahmen);
@@ -421,8 +419,10 @@
   .pfad-e.erreicht .pfad-wort { color:var(--ink); }
   .pfad-e.jetzt .pfad-wort { font-weight:700; }
   .pfad-e.stoerung .pfad-wort { color:var(--overdue); font-weight:700; }
-  .pfad-sub { display:block; margin-top:3px; font-size:10px; color:var(--muted-hell);
-              white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* Auch die Zeile darunter darf umbrechen: "abgeschlossen" passt in 78 px
+     nicht, und "abgeschloss…" sagt weniger als zwei Zeilen. */
+  .pfad-sub { display:block; margin-top:3px; font-size:10px; line-height:1.35;
+              color:var(--muted-hell); }
   .pfad-e.stoerung .pfad-sub { color:var(--overdue); }
 
   /* ---- Der Verlauf ---- */
@@ -658,10 +658,22 @@
   /* =====================================================================
      Stammdaten — identisch zum Desktop-Board (mein-board.html)
      ===================================================================== */
-  var STATUSES = ["Backlog","Do Next","Ongoing","Blocked","Waiting for Input","Done"];
+  /* Vier Zustaende, wie im Desktop-Board. "Als Naechstes" und "Wartet auf
+     Input" gab es frueher; sie wurden dort entfernt, in der Handy-Fassung aber
+     nie nachgezogen — deshalb standen im Weg des Tickets sechs Stufen statt
+     vier. Bestehende Tickets, die noch auf einem der alten Werte stehen,
+     werden beim Lesen abgebildet: "Als Naechstes" ist ein Ticket, das noch
+     nicht laeuft (also offen), "Wartet auf Input" eines, das nicht weiterkann
+     (also blockiert). */
+  var STATUSES = ["Backlog","Ongoing","Blocked","Done"];
   var OPEN_STATUSES = STATUSES.filter(function(s){ return s !== "Done"; });
-  var STATUS_LABELS = { "Backlog":"Offen", "Do Next":"Als Nächstes", "Ongoing":"In Arbeit",
-                        "Blocked":"Blockiert", "Waiting for Input":"Wartet auf Input", "Done":"Erledigt" };
+  var STATUS_LABELS = { "Backlog":"Offen", "Ongoing":"In Arbeit",
+                        "Blocked":"Blockiert", "Done":"Erledigt" };
+  var STATUS_MIGRATE = { "Do Next":"Backlog", "Waiting for Input":"Blocked" };
+  function normalizeStatus(s){
+    s = STATUS_MIGRATE[s] || s;
+    return STATUSES.indexOf(s) >= 0 ? s : STATUSES[0];
+  }
   function statusLabel(s){ return STATUS_LABELS[s] || s; }
 
   var TAG_GROUPS = [
@@ -858,10 +870,8 @@
     // Statusfarben als Helligkeitsstaffel aus dem Akzent, wie im Desktop-Board
     STATUS_COLORS = {
       "Backlog": b.ink,
-      "Do Next": b.accent,
       "Ongoing": mixHex(b.accent,"#ffffff",0.35),
       "Blocked": darkenHex(b.accent,0.30),
-      "Waiting for Input": mixHex(b.accent,"#ffffff",0.62),
       "Done": mixHex(b.ink, b.bg, 0.55)
     };
     // Vier harmonische Tag-Farben aus dem Akzent ableiten
@@ -1651,7 +1661,7 @@
     bySub = bySub || {};
     return (rawT||[]).map(function(r){
       return { id:r.id, title:r.title||"", dueDate:normDate(r.dueDate), subtasks:bySub[r.id]||[],
-               status:STATUSES.indexOf(r.status)>=0 ? r.status : STATUSES[0],
+               status:normalizeStatus(r.status),
                priority:r.priority||"", description:r.description||"",
                tags:(r.tags||"").split(",").map(function(s){ return s.trim(); }).filter(Boolean),
                comments:byTicket[r.id]||[], series_id:r.series_id||"" };
@@ -1716,7 +1726,7 @@
     if (Array.isArray(d[TAB_RECURRING])){
       recurring = d[TAB_RECURRING].filter(function(x){ return x.series_id; }).map(function(x){
         return { series_id:x.series_id, title:x.title||"", description:x.description||"", tags:x.tags||"",
-                 priority:x.priority||"", status:STATUSES.indexOf(x.status)>=0 ? x.status : "Backlog",
+                 priority:x.priority||"", status:normalizeStatus(x.status),
                  freq:x.freq||"weekly", interval:parseInt(x.interval)||1, weekdays:x.weekdays||"",
                  dayOfMonth:x.dayOfMonth||"", startDate:normDate(x.startDate), endDate:normDate(x.endDate),
                  nextDate:normDate(x.nextDate), active:String(x.active).toUpperCase()!=="FALSE" };
