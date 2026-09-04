@@ -85,7 +85,7 @@
              overflow-x:auto; -webkit-overflow-scrolling:touch; }
   pre.code code { display:block; background:none; padding:0; border-radius:0;
                   white-space:pre; font-size:13px; line-height:1.45; }
-  pre.code[data-lang]:before { content:attr(data-lang); display:block; font-size:10px;
+  pre.code[data-lang]:before { content:attr(data-lang); display:block; font-size:11px;
                                font-weight:800; text-transform:uppercase; letter-spacing:.06em;
                                color:var(--muted); margin-bottom:6px; }
 
@@ -138,7 +138,7 @@
   .q-zeile { display:flex; align-items:baseline; gap:10px; padding:11px 0;
              border-bottom:1px solid var(--line-zart); font-size:13.5px; }
   .q-zeile.erste { color:var(--accent); }
-  .q-v { margin-left:auto; flex:0 0 auto; font-size:9px; letter-spacing:.14em;
+  .q-v { margin-left:auto; flex:0 0 auto; font-size:11px; letter-spacing:.1em;
          text-transform:uppercase; color:var(--overdue); }
   .searchbar { padding:0 14px 10px; }
   .searchbar input {
@@ -180,7 +180,7 @@
   .grp h2 { display:block; width:100%; text-align:left; margin:0;
             font-size:19px; font-weight:400; letter-spacing:-.015em; line-height:1.25;
             color:var(--ink); padding:26px 16px 10px; background:none; border:none; }
-  .grp h2 small { display:block; font-size:10px; letter-spacing:.14em;
+  .grp h2 small { display:block; font-size:11px; letter-spacing:.1em;
                   text-transform:uppercase; color:var(--muted); margin-top:7px; }
   .grp h2.zu small:after { content:" · zu"; }
   .grp.over h2, .grp.heute h2 { color:var(--accent); }
@@ -234,7 +234,7 @@
   .k-marke .ic, .k-marke .ic-farbe, .k-marke svg { display:block; vertical-align:0; margin:0; }
   .k-marke .ic-farbe { line-height:0; }
   .k-felder { display:flex; gap:26px; margin-top:15px; }
-  .k-lab { display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:.14em;
+  .k-lab { display:block; font-family:var(--mono); font-size:11px; letter-spacing:.1em;
            text-transform:uppercase; color:var(--muted-hell); margin-bottom:4px; }
   .k-wert { display:block; font-family:var(--mono); font-size:13px;
             color:var(--karte-tinte, var(--ink));
@@ -243,7 +243,7 @@
   .k-wert.today { color:var(--accent); }
   .k-wert.leer { color:var(--muted-hell); }
   .k-fuss { display:flex; align-items:flex-end; gap:12px; margin-top:15px; }
-  .k-status { font-family:var(--mono); font-size:9.5px; letter-spacing:.14em;
+  .k-status { font-family:var(--mono); font-size:11px; letter-spacing:.1em;
               text-transform:uppercase; color:var(--muted-hell); white-space:nowrap; }
   .k-status.blockiert { color:var(--overdue); }
   .k-fort { flex:1 1 auto; min-width:0; }
@@ -261,8 +261,15 @@
      Information, hier Zierde. */
   .t-light .k-doppel i { opacity:.42; }
   .t-light .k-doppel u { opacity:.55; }
-  .k-hk { flex:0 0 auto; width:16px; height:16px; padding:0; background:none;
-          border:1px solid var(--muted-hell); border-radius:50%; margin-top:3px; }
+  /* Der Kreis bleibt 16 px gross, die TIPPFLAECHE wird 44 — das Minimum fuer
+     eine Handbedienung. Der negative Aussenabstand nimmt die Polsterung aus
+     der Anordnung heraus, damit die Zeile nicht auseinanderrueckt. */
+  .k-hk { flex:0 0 auto; width:44px; height:44px; padding:0; background:none;
+          border:none; margin:-13px -14px -13px -14px;
+          display:flex; align-items:center; justify-content:center; }
+  .k-hk::before { content:""; width:16px; height:16px; border-radius:50%;
+                  border:1px solid var(--muted-hell); }
+  .k-hk:active::before { background:var(--accent); border-color:var(--accent); }
   .k-hk:active { background:var(--accent); border-color:var(--accent); }
   .card .dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; margin-left:2px;
                align-self:flex-start; margin-top:7px; }
@@ -273,7 +280,7 @@
   /* Zweitzeile als Versalien mit weiter Sperrung — dieselbe Rolle wie .li-unter
      am Desktop. Kein Umbruch: lieber abschneiden als den Rhythmus brechen. */
   .card .meta { display:flex; align-items:center; gap:7px;
-                font-size:9.5px; letter-spacing:.15em; text-transform:uppercase;
+                font-size:11px; letter-spacing:.1em; text-transform:uppercase;
                 color:var(--muted-hell); margin-top:5px; line-height:1.5;
                 white-space:nowrap; overflow:hidden; }
   .card .meta .ic { flex:0 0 auto; }
@@ -281,8 +288,8 @@
   .card .meta .sep { margin:0 7px; opacity:.5; }
   /* Status und Datum bleiben antippbar — nur ohne farbige Flaeche. Die
      Polsterung vergroessert die Tippflaeche, ohne das Layout zu aendern. */
-  .card .meta .act { color:var(--muted-hell); font-size:9.5px; font-weight:400;
-                     letter-spacing:.15em; text-transform:uppercase;
+  .card .meta .act { color:var(--muted-hell); font-size:11px; font-weight:400;
+                     letter-spacing:.1em; text-transform:uppercase;
                      padding:9px 0; margin:-9px 0; }
   .card .meta .act.over { color:var(--overdue); }
   .card .meta .act.today { color:var(--accent); }
@@ -291,9 +298,9 @@
      Fuenftel der Tickets und soll auffallen, ohne eine eigene Spalte zu bekommen. */
   .card .ttl-zeile { display:flex; align-items:center; gap:7px; min-width:0; }
   .card .ttl-zeile .ttl { min-width:0; }
-  .card .li-blk { flex:0 0 auto; font-size:9.5px; font-weight:400; letter-spacing:.15em;
+  .card .li-blk { flex:0 0 auto; font-size:11px; font-weight:400; letter-spacing:.1em;
                   text-transform:uppercase; color:var(--accent); background:none; }
-  .card .done-btn { flex:0 0 auto; width:34px; display:flex; align-items:center; justify-content:center; }
+  .card .done-btn { flex:0 0 auto; width:44px; min-height:44px; margin:-11px -5px; display:flex; align-items:center; justify-content:center; }
   .card .circ { width:13px; height:13px; border-radius:50%; border:1px solid var(--muted-hell); }
   .card .done-btn:active .circ { background:var(--accent); border-color:var(--accent); }
   .card.going { opacity:0; transform:translateX(50px); transition:opacity .2s, transform .2s; }
@@ -314,7 +321,7 @@
   nav { position:fixed; left:0; right:0; bottom:0; z-index:30; display:flex;
         background:var(--cream); border-top:1px solid var(--line); padding-bottom:var(--bot); }
   nav button { flex:1; padding:9px 0 8px; display:flex; flex-direction:column; align-items:center;
-               gap:5px; font-size:9px; font-weight:400; letter-spacing:.14em;
+               gap:5px; font-size:11px; font-weight:400; letter-spacing:.1em;
                text-transform:uppercase; color:var(--muted); }
   nav button.on { color:var(--accent); }
   /* Symbole stehen im Fliesstext — dort brauchen sie eine Grundlinie und
@@ -378,9 +385,9 @@
   .full.on { transform:none; }
   .full-hdr { display:flex; align-items:center; gap:8px; padding:calc(var(--top) + 8px) 12px 10px;
               border-bottom:1px solid var(--line); flex:0 0 auto; }
-  .full-hdr .t { flex:1; font-size:10px; font-weight:400; letter-spacing:.16em;
+  .full-hdr .t { flex:1; font-size:11px; font-weight:400; letter-spacing:.11em;
                  text-transform:uppercase; color:var(--muted); text-align:center; }
-  .full-hdr button { padding:8px 10px; font-size:10px; font-weight:400; letter-spacing:.14em;
+  .full-hdr button { padding:8px 10px; font-size:11px; font-weight:400; letter-spacing:.1em;
                      text-transform:uppercase; color:var(--accent);
                      border-radius:0; white-space:nowrap; }
   .full-hdr button:disabled { opacity:.4; }
@@ -413,15 +420,15 @@
     background-image:repeating-linear-gradient(-45deg, var(--overdue) 0 4px, transparent 4px 9px); }
   /* "Wartet auf Input" passt auch in 97 px nicht in eine Zeile. Umbrechen
      statt abschneiden: ein halbes Wort sagt weniger als zwei Zeilen. */
-  .pfad-wort { display:block; margin-top:8px; font-family:var(--mono); font-size:8.5px;
-               letter-spacing:.12em; text-transform:uppercase; color:var(--muted-hell);
+  .pfad-wort { display:block; margin-top:8px; font-family:var(--mono); font-size:11px;
+               letter-spacing:.09em; text-transform:uppercase; color:var(--muted-hell);
                line-height:1.35; }
   .pfad-e.erreicht .pfad-wort { color:var(--ink); }
   .pfad-e.jetzt .pfad-wort { font-weight:700; }
   .pfad-e.stoerung .pfad-wort { color:var(--overdue); font-weight:700; }
   /* Auch die Zeile darunter darf umbrechen: "abgeschlossen" passt in 78 px
      nicht, und "abgeschloss…" sagt weniger als zwei Zeilen. */
-  .pfad-sub { display:block; margin-top:3px; font-size:10px; line-height:1.35;
+  .pfad-sub { display:block; margin-top:3px; font-size:11px; line-height:1.35;
               color:var(--muted-hell); }
   .pfad-e.stoerung .pfad-sub { color:var(--overdue); }
 
@@ -438,11 +445,11 @@
   .vl-e.start .vl-punkt { background:none; box-shadow:inset 0 0 0 1px var(--muted-hell); }
   .vl-was { display:block; font-size:14px; line-height:1.35; color:var(--ink); overflow-wrap:anywhere; }
   .vl-e.halt .vl-was { color:var(--overdue); }
-  .vl-zeit { display:block; font-family:var(--mono); font-size:10.5px; letter-spacing:.04em;
+  .vl-zeit { display:block; font-family:var(--mono); font-size:11px; letter-spacing:.04em;
              color:var(--muted-hell); margin-top:2px; }
   .vl-leer { font-size:12.5px; color:var(--muted-hell); }
 
-  .f-label { font-size:9.5px; font-weight:400; text-transform:uppercase; letter-spacing:.15em;
+  .f-label { font-size:11px; font-weight:400; text-transform:uppercase; letter-spacing:.1em;
              color:var(--muted-hell); margin:34px 0 10px; }
   .rowbtns.erste { margin-top:20px; }
   /* Kopf: Symbol und Titel auf einer Grundlinie. Das Symbol traegt den Tag und
@@ -477,11 +484,11 @@
   .rowbtns .pick:active { background:var(--chip); }
   .rowbtns .pick span.lbl { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .tagrow { display:flex; flex-wrap:wrap; gap:7px; }
-  .tagopt { font-size:10px; font-weight:400; letter-spacing:.12em; text-transform:uppercase;
+  .tagopt { font-size:11px; font-weight:400; letter-spacing:.09em; text-transform:uppercase;
             padding:8px 12px; border-radius:var(--feld-radius);
             border:1px solid var(--rahmen); color:var(--muted); background:none; }
   .tagopt.on { border-color:var(--accent); color:var(--accent); background:none; }
-  .grp-lbl { font-size:9px; font-weight:400; text-transform:uppercase; letter-spacing:.15em;
+  .grp-lbl { font-size:11px; font-weight:400; text-transform:uppercase; letter-spacing:.1em;
              color:var(--muted-hell); margin:14px 0 7px; }
 
   /* ---------- Formatier-Editor ---------- */
@@ -506,7 +513,7 @@
   .cmt { background:none; border-radius:0; padding:12px 0; margin-bottom:0; box-shadow:none;
          border-bottom:1px solid var(--line-zart); }
   .cmt:last-of-type { border-bottom:none; }
-  .cmt .when { font-size:9px; font-weight:400; letter-spacing:.15em; text-transform:uppercase;
+  .cmt .when { font-size:11px; font-weight:400; letter-spacing:.1em; text-transform:uppercase;
                color:var(--muted-hell); margin-bottom:5px; }
   .cmt-box { margin-top:12px; }
 
@@ -520,7 +527,7 @@
   .icard .imain { flex:1; min-width:0; display:block; }
   .icard .ittl { display:block; font-size:16px; font-weight:400; line-height:1.35;
                  letter-spacing:-.008em; overflow-wrap:anywhere; }
-  .icard .isub { display:block; font-size:9.5px; letter-spacing:.15em; text-transform:uppercase;
+  .icard .isub { display:block; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
                  color:var(--muted-hell); margin-top:5px; line-height:1.5;
                  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .icard .idots { display:flex; align-items:center; gap:7px; flex:0 0 auto; color:var(--muted-hell); }
@@ -529,7 +536,7 @@
 
   /* Wert zum Antippen: Haarlinie statt Kasten, Beschriftung als Versalie */
   .ikv { margin-bottom:0; border-bottom:1px solid var(--line-zart); padding:12px 0; }
-  .ikv .ik { font-size:9.5px; font-weight:400; text-transform:uppercase; letter-spacing:.15em;
+  .ikv .ik { font-size:11px; font-weight:400; text-transform:uppercase; letter-spacing:.1em;
              color:var(--muted-hell); }
   .ikv .iv { display:flex; align-items:center; gap:10px; width:100%; text-align:left;
              font-size:16px; padding:6px 0 0; margin-top:0; background:none;
@@ -537,10 +544,10 @@
   .ikv .iv:active { background:var(--chip); }
   .ikv .isw { width:15px; height:15px; border-radius:3px; border:1px solid var(--rahmen); flex:0 0 auto; }
   .ikv .ival { flex:1; min-width:0; }
-  .ikv .icp { flex:0 0 auto; color:var(--muted-hell); font-size:9.5px; letter-spacing:.15em;
+  .ikv .icp { flex:0 0 auto; color:var(--muted-hell); font-size:11px; letter-spacing:.1em;
               text-transform:uppercase; }
   .itags { display:flex; flex-wrap:wrap; gap:14px; margin:6px 0 22px; }
-  .itag { font-size:9.5px; font-weight:400; letter-spacing:.15em; text-transform:uppercase;
+  .itag { font-size:11px; font-weight:400; letter-spacing:.1em; text-transform:uppercase;
           color:var(--muted-hell); display:inline-flex; align-items:center; }
 
   .irow { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
@@ -570,8 +577,8 @@
 
   /* Knoepfe sind Text, keine Flaechen — wie am Desktop. Der Rahmen bleibt nur
      dort, wo etwas angetippt werden SOLL und sonst nichts es anzeigt. */
-  .wide { width:100%; padding:13px; border-radius:var(--feld-radius); font-size:10px;
-          font-weight:400; letter-spacing:.14em; text-transform:uppercase;
+  .wide { width:100%; padding:13px; border-radius:var(--feld-radius); font-size:11px;
+          font-weight:400; letter-spacing:.1em; text-transform:uppercase;
           margin-top:16px; background:none; box-shadow:none;
           border:none; color:var(--muted); }
   .wide:disabled { opacity:.35; }
@@ -762,6 +769,17 @@
     var c = hx(hex).map(function(v){ v/=255; return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); });
     return 0.2126*c[0] + 0.7152*c[1] + 0.0722*c[2];
   }
+  /* Schiebt eine Farbe Richtung Weiss oder Schwarz, bis sie auf dem Grund den
+     geforderten Kontrast erreicht. Gebraucht, weil die Nebentoene feste
+     Grauwerte waren: #8B959A kam auf hellem Grund auf 2,5:1 — Text bis 17pt
+     braucht 4,5:1. */
+  function lesbar(farbe, grund, ziel, hellerMachen){
+    var c = farbe;
+    for (var i = 0; i < 24 && kontrast(c, grund) < ziel; i++){
+      c = mixHex(c, hellerMachen ? "#ffffff" : "#000000", 0.06);
+    }
+    return c;
+  }
   function kontrast(a,b){ var l1=relLum(a), l2=relLum(b);
     return (Math.max(l1,l2)+0.05) / (Math.min(l1,l2)+0.05); }
   function onColor(hex){ return kontrast("#17181a",hex) >= kontrast("#ffffff",hex) ? "#17181a" : "#ffffff"; }
@@ -864,6 +882,14 @@
       r.style.setProperty("--karte-tinte", mixHex(b.ink, b.bg, 0.10));
       r.style.setProperty("--karte-rille", "rgba(0,0,0,.11)");
     }
+    /* Nebentoene aus der Palette rechnen statt fest zu setzen. Geprueft wird
+       gegen die unguenstigste Flaeche, auf der sie stehen: hell der
+       Seitengrund, dunkel die etwas hellere Kachel. */
+    var schlimmste = DARK ? r.style.getPropertyValue("--karte-1").trim() : b.bg;
+    if (!schlimmste) schlimmste = b.bg;
+    r.style.setProperty("--muted",      lesbar(mixHex(b.ink, b.bg, 0.34), schlimmste, 4.5, DARK));
+    r.style.setProperty("--muted-hell", lesbar(mixHex(b.ink, b.bg, 0.46), schlimmste, 4.5, DARK));
+    r.style.setProperty("--overdue",    lesbar(DARK ? "#EE8C7E" : "#A9331B", schlimmste, 4.5, DARK));
     var mc = document.getElementById("themeColor");
     if (mc) mc.setAttribute("content", b.bg);
 
