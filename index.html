@@ -99,7 +99,7 @@
   .sub-titel { flex:1; min-width:0; font-size:16px; word-break:break-word; }
   .sub.fertig .sub-titel { color:var(--muted); text-decoration:line-through; }
   .sub-weg { flex:0 0 auto; color:var(--muted); padding:8px 4px; font-size:15px; }
-  .sub-hinweis { font-size:14px; color:var(--muted); padding:8px 2px; }
+  .sub-hinweis { font-size:15px; color:var(--muted); padding:8px 2px; }
   .sub-neu { display:flex; gap:8px; align-items:center; margin-top:8px; }
   .sub-neu input { flex:1; min-width:0; padding:10px 0; border-radius:0;
                    border:none; border-bottom:1px solid var(--line-zart);
@@ -133,10 +133,10 @@
             background:var(--accent); color:var(--on-accent); font-size:11px; font-weight:800;
             align-items:center; justify-content:center; margin-right:2px; }
   #qBadge.on { display:inline-flex; }
-  .q-hinweis { font-size:12.5px; color:var(--muted); line-height:1.5; margin:0 0 14px; }
+  .q-hinweis { font-size:12px; color:var(--muted); line-height:1.5; margin:0 0 14px; }
   .q-liste { border-top:1px solid var(--line-zart); margin-bottom:4px; }
   .q-zeile { display:flex; align-items:baseline; gap:10px; padding:11px 0;
-             border-bottom:1px solid var(--line-zart); font-size:13.5px; }
+             border-bottom:1px solid var(--line-zart); font-size:13px; }
   .q-zeile.erste { color:var(--accent); }
   .q-v { margin-left:auto; flex:0 0 auto; font-size:11px; letter-spacing:.1em;
          text-transform:uppercase; color:var(--overdue); }
@@ -150,7 +150,7 @@
                scrollbar-width:none; -webkit-overflow-scrolling:touch; }
   .statusbar::-webkit-scrollbar { display:none; }
   .sbtn { flex:0 0 auto; padding:8px 14px; border-radius:11px; background:var(--chip);
-          font-size:14px; font-weight:600; color:var(--muted); white-space:nowrap; }
+          font-size:15px; font-weight:600; color:var(--muted); white-space:nowrap; }
   .sbtn.on { background:var(--accent); color:var(--on-accent); }
   .sbtn i { font-style:normal; opacity:.65; margin-left:5px; }
 
@@ -164,7 +164,7 @@
               border-radius:13px; font-size:16px; font-weight:600; text-align:left; }
   .dash-row:active { background:var(--chip); }
   .dash-row .nm { flex:1; }
-  .dash-row .pct { color:var(--muted); font-weight:600; font-size:13.5px; min-width:42px; text-align:right; }
+  .dash-row .pct { color:var(--muted); font-weight:600; font-size:13px; min-width:42px; text-align:right; }
   .dash-row .arr { color:var(--muted); font-weight:400; }
   .dash-sep { border-top:1px solid var(--line); margin:9px 0 3px; }
 
@@ -178,7 +178,7 @@
      negativer Laufweite, darunter eine Versalien-Zeile mit weiter Sperrung.
      Kein Fett, keine Flaeche — die Groesse allein traegt die Hierarchie. */
   .grp h2 { display:block; width:100%; text-align:left; margin:0;
-            font-size:19px; font-weight:400; letter-spacing:-.015em; line-height:1.25;
+            font-size:20px; font-weight:400; letter-spacing:-.015em; line-height:1.25;
             color:var(--ink); padding:26px 16px 10px; background:none; border:none; }
   .grp h2 small { display:block; font-size:11px; letter-spacing:.1em;
                   text-transform:uppercase; color:var(--muted); margin-top:7px; }
@@ -218,7 +218,7 @@
 
   /* ---- Innenleben, 1:1 wie am Desktop ---- */
   .k-kopf { display:flex; align-items:flex-start; gap:11px; }
-  .k-titel { flex:1 1 auto; font-size:15.5px; font-weight:700; line-height:1.3;
+  .k-titel { flex:1 1 auto; font-size:15px; font-weight:700; line-height:1.3;
              letter-spacing:-.012em; overflow-wrap:anywhere; hyphens:auto;
              color:var(--karte-tinte, var(--ink)); }
   /* Nur noch im Detailkopf: dort ist der Kreis die Tippflaeche fuer die
@@ -305,7 +305,7 @@
   .card .done-btn:active .circ { background:var(--accent); border-color:var(--accent); }
   .card.going { opacity:0; transform:translateX(50px); transition:opacity .2s, transform .2s; }
 
-  .pill { display:inline-flex; align-items:center; gap:4px; font-size:11.5px; font-weight:600;
+  .pill { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600;
           border-radius:8px; padding:4px 9px; background:var(--chip); color:var(--muted); }
   .pill.dt.over { background:rgba(192,68,46,.15); color:var(--overdue); }
   .pill.dt.today { background:rgba(196,103,48,.17); color:var(--accent); }
@@ -366,11 +366,11 @@
 
   /* ---------- Aussehen ---------- */
   .seg { display:flex; gap:5px; background:var(--chip); border-radius:13px; padding:4px; margin-bottom:18px; }
-  .seg button { flex:1; padding:11px 6px; border-radius:10px; font-size:14.5px; font-weight:700; color:var(--muted); }
+  .seg button { flex:1; padding:11px 6px; border-radius:10px; font-size:15px; font-weight:700; color:var(--muted); }
   .seg button.on { background:var(--accent); color:var(--on-accent); }
   /* Fuenf Schriften statt drei Modi: auf einem schmalen Bildschirm wuerden die
      Namen sonst umbrechen oder abgeschnitten. Kleiner setzen und knapper polstern. */
-  .seg.schriftwahl button { font-size:12.5px; padding:11px 2px; font-weight:600; }
+  .seg.schriftwahl button { font-size:12px; padding:11px 2px; font-weight:600; }
   .presets { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
   .pcard { border:2px solid var(--line); border-radius:15px; padding:12px; text-align:left; }
   .pcard.on { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
@@ -443,11 +443,11 @@
   .vl-e.jetzt .vl-punkt { background:var(--accent); }
   .vl-e.halt .vl-punkt { background:var(--overdue); border-radius:2px; }
   .vl-e.start .vl-punkt { background:none; box-shadow:inset 0 0 0 1px var(--muted-hell); }
-  .vl-was { display:block; font-size:14px; line-height:1.35; color:var(--ink); overflow-wrap:anywhere; }
+  .vl-was { display:block; font-size:15px; line-height:1.35; color:var(--ink); overflow-wrap:anywhere; }
   .vl-e.halt .vl-was { color:var(--overdue); }
   .vl-zeit { display:block; font-family:var(--mono); font-size:11px; letter-spacing:.04em;
              color:var(--muted-hell); margin-top:2px; }
-  .vl-leer { font-size:12.5px; color:var(--muted-hell); }
+  .vl-leer { font-size:12px; color:var(--muted-hell); }
 
   .f-label { font-size:11px; font-weight:400; text-transform:uppercase; letter-spacing:.1em;
              color:var(--muted-hell); margin:34px 0 10px; }
@@ -458,7 +458,7 @@
      und Kuerzel stehen darin; die Werte sind antippbar, die Haarlinie sagt es,
      ohne aus der Kachel ein Formular zu machen. */
   .ka-kopf #dTitle { flex:1 1 auto; min-width:0; border:none; background:none; padding:0;
-                     font-family:inherit; font-size:19px; font-weight:700;
+                     font-family:inherit; font-size:20px; font-weight:700;
                      letter-spacing:-.015em; line-height:1.25; color:var(--ink);
                      resize:none; overflow:hidden; }
   .ka-kopf #dTitle:focus { outline:none; }
@@ -564,7 +564,7 @@
   .isetup { font-size:15px; line-height:1.6; color:var(--muted); padding:26px 4px; }
   .isetup b { color:var(--ink); }
   .isetup code { background:none; border-bottom:1px solid var(--line-zart); border-radius:0;
-                 padding:1px 2px; font-size:14px; }
+                 padding:1px 2px; font-size:15px; }
 
   .md { font-size:15px; line-height:1.5; word-break:break-word; }
   .md ul { list-style:disc outside; margin:5px 0; padding-left:22px; }
@@ -590,7 +590,7 @@
      Rand, ein blosses Verschieben um die eigene Hoehe reicht dafuer nicht. */
   #snack { position:fixed; left:12px; right:12px; bottom:calc(74px + var(--bot)); z-index:70;
            background:var(--ink); color:var(--cream); border-radius:14px; padding:14px 16px;
-           display:flex; align-items:center; gap:12px; font-size:14.5px; font-weight:600;
+           display:flex; align-items:center; gap:12px; font-size:15px; font-weight:600;
            box-shadow:0 6px 22px rgba(0,0,0,.3);
            visibility:hidden; opacity:0; transform:translateY(16px);
            transition:transform .26s cubic-bezier(.25,.8,.3,1), opacity .2s, visibility .26s; }
